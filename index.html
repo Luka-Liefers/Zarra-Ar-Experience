@@ -1695,7 +1695,9 @@
          renderOrder:999 + depthTest:false makes them always visible above
          the MindAR camera background plane in the same WebGL context.
          ============================================================ */
-      let swarmSpawned = false;
+      let swarmSpawned   = false;
+      let goldBeeEntity  = null;   // captured in spawnSwarm; used by screen-space hit test
+      let goldClickFired = false;  // guards against double-firing during the async transition
 
       /* ----------- WebXR capability probe -----------------------
        * MindAR drives the active AR session (it owns the camera + render
@@ -1734,7 +1736,9 @@
       });
 
       function clearSwarm() {
-        swarmSpawned = false;
+        swarmSpawned   = false;
+        goldBeeEntity  = null;
+        goldClickFired = false;
         document.getElementById('bee-cta').hidden = true;
         while (beeSwarm.firstChild) beeSwarm.removeChild(beeSwarm.firstChild);
       }
@@ -1782,21 +1786,58 @@
             });
           });
           if (c.gold) {
+            goldBeeEntity = ent;
             ent.setAttribute('gold-tint', '');
-            ent.addEventListener('click', onGoldBeeClicked);
+            ent.addEventListener('click', onGoldBeeClicked); // A-Frame cursor path (may or may not catch)
           }
           beeSwarm.appendChild(ent);
         });
       }
 
       async function onGoldBeeClicked() {
-        if (state !== 'bee') return;
+        if (state !== 'bee' || goldClickFired) return;
+        goldClickFired = true;
         haptic([40, 30, 80]);
         sfx('gold');
         await stopMindAR();
         clearSwarm();
         goTo('profile');
       }
+
+      /* ============================================================
+         GOLD-BEE SCREEN-SPACE HIT TEST
+         ----------------------------------------------------------
+         A-Frame's mouse cursor + raycaster can be unreliable when
+         the target is a small, fast-moving 3D mesh on a phone — the
+         ray has to thread the needle exactly. We add a document-level
+         click handler that:
+           1. Reads the gold bee's WORLD position (it's parented to the
+              tracked image target, so this updates with MindAR's pose).
+           2. Projects that position to screen coordinates using the
+              active A-Frame camera.
+           3. Fires onGoldBeeClicked if the user tapped within ~64 px
+              of where the bee currently is on screen.
+         The A-Frame click path is kept as a primary; this is the
+         fallback. onGoldBeeClicked is guarded so they can't both fire.
+         ============================================================ */
+      const _goldHitVec = new THREE.Vector3();
+      document.addEventListener('click', (e) => {
+        if (state !== 'bee' || goldClickFired || !goldBeeEntity) return;
+        // Ignore taps on UI chrome (restart pill, etc.)
+        if (e.target.closest('button, input, select, a')) return;
+        const cam = scene.camera;
+        if (!cam) return;
+        // Skip when the target isn't currently tracked (bees aren't visible)
+        if (target0.object3D && target0.object3D.visible === false) return;
+        goldBeeEntity.object3D.getWorldPosition(_goldHitVec);
+        _goldHitVec.project(cam);
+        if (_goldHitVec.z < -1 || _goldHitVec.z > 1) return; // off-screen depth
+        const sx = (_goldHitVec.x + 1) * 0.5 * window.innerWidth;
+        const sy = (1 - _goldHitVec.y) * 0.5 * window.innerHeight;
+        const dx = e.clientX - sx;
+        const dy = e.clientY - sy;
+        if (Math.hypot(dx, dy) < 64) onGoldBeeClicked();
+      });
 
       document.getElementById('bee-cta').addEventListener('click', async () => {
         haptic([60]);
