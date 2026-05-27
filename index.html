@@ -1107,19 +1107,17 @@
         <a-asset-item id="bee-model" src="./assets/bee.glb"></a-asset-item>
       </a-assets>
 
-      <a-camera position="0 0 0" look-controls="enabled: false">
-        <!-- NON-TRACKING VARIANT: bees are camera-anchored, so they appear
-             in fixed screen-space positions regardless of where the device
-             is pointed. No image-target dependency. -->
-        <a-entity id="bee-swarm"></a-entity>
-      </a-camera>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-light type="ambient" color="#ffd9a0" intensity="0.95"></a-light>
       <a-light type="directional" color="#fff2c8" intensity="0.6" position="0.5 1 1"></a-light>
 
-      <!-- Target kept in the markup so JS that references #target-0 doesn't
-           error, but it's not used for bee placement in this variant. -->
-      <a-entity id="target-0" mindar-image-target="targetIndex: 0"></a-entity>
+      <a-entity id="target-0" mindar-image-target="targetIndex: 0">
+        <!-- World-anchor container: bees live here, position is captured
+             from target's pose at detection so they stay 3D-positioned
+             around the can rather than following micro-jitter. -->
+        <a-entity id="bee-swarm"></a-entity>
+      </a-entity>
     </a-scene>
 
     <!-- WebXR capability badge (only shown if device supports immersive-ar) -->
@@ -1677,14 +1675,8 @@
       });
       document.getElementById('perm-allow').addEventListener('click', async () => {
         haptic([80]);
-        // NON-TRACKING VARIANT: skip the scan step. As soon as the camera
-        // is up we spawn the swarm and transition straight into the bee
-        // state — bees are not anchored to any image target.
-        const start = async () => {
-          await startMindAR();
-          spawnSwarm();
-          goTo('bee');
-        };
+        goTo('scan');
+        const start = () => startMindAR();
         if (scene.hasLoaded) await start();
         else scene.addEventListener('loaded', start, { once: true });
       });
@@ -1697,6 +1689,7 @@
          ============================================================ */
       let swarmSpawned  = false;
       let goldBeeEntity = null;   // captured in spawnSwarm; used by screen-space touch hit test
+      let swarmAnchored = false;  // becomes true after the first lock to world space
 
       /* ----------- WebXR capability probe -----------------------
        * MindAR drives the active AR session (it owns the camera + render
@@ -1732,13 +1725,74 @@
           spawnSwarm();
           goTo('bee');
         }
+        // ONE-TIME WORLD LOCK
+        // ----------------------------------------------------------
+        // The first time the can is detected we snapshot the target's
+        // current pose and re-parent #bee-swarm from inside #target-0
+        // to the <a-scene> root, applying that pose as the new local
+        // transform. Result: the bees stay frozen at the spot where
+        // the can was first found and no longer follow MindAR's
+        // tracking updates — so they don't disappear when the can
+        // briefly goes out of frame or the tracker jitters.
+        if (!swarmAnchored) {
+          swarmAnchored = true;
+          // Defer one tick so MindAR has applied the latest pose to
+          // target-0's matrixWorld before we read it.
+          requestAnimationFrame(lockSwarmToWorld);
+        }
       });
+
+      /* Reparent #bee-swarm from #target-0 to the <a-scene> root while
+         preserving its current world transform. After this point the
+         swarm is world-anchored — its position no longer changes when
+         the image target is lost or its pose updates. */
+      function lockSwarmToWorld() {
+        if (!beeSwarm || !beeSwarm.parentNode) return;
+        // Guard: only meaningful if currently inside target-0
+        if (beeSwarm.parentNode === scene) return;
+        const swarmObj = beeSwarm.object3D;
+        if (!swarmObj) return;
+
+        // Make sure the entire chain has fresh world matrices
+        swarmObj.updateWorldMatrix(true, false);
+
+        // Snapshot world transform (relative to the scene root, which is
+        // world space because the scene itself has identity transform).
+        const worldPos   = new THREE.Vector3();
+        const worldQuat  = new THREE.Quaternion();
+        const worldScale = new THREE.Vector3();
+        swarmObj.matrixWorld.decompose(worldPos, worldQuat, worldScale);
+
+        // DOM-level reparent. A-Frame keeps object3D references stable
+        // across moves, and re-attaches the THREE node to the new parent.
+        scene.appendChild(beeSwarm);
+
+        // The new parent (scene root) has identity world transform, so
+        // local = world. Re-apply the captured pose.
+        swarmObj.position.copy(worldPos);
+        swarmObj.quaternion.copy(worldQuat);
+        swarmObj.scale.copy(worldScale);
+
+        console.log('[bee-swarm] locked to world at',
+                    worldPos.toArray().map(n => n.toFixed(3)).join(', '));
+      }
 
       function clearSwarm() {
         swarmSpawned  = false;
+        swarmAnchored = false;
         goldBeeEntity = null;
         document.getElementById('bee-cta').hidden = true;
         while (beeSwarm.firstChild) beeSwarm.removeChild(beeSwarm.firstChild);
+        // If we previously moved bee-swarm to the scene root, put it back
+        // inside target-0 so the next session starts in the original
+        // (tracked) configuration.
+        const target = document.getElementById('target-0');
+        if (target && beeSwarm.parentNode !== target) {
+          target.appendChild(beeSwarm);
+          beeSwarm.object3D.position.set(0, 0, 0);
+          beeSwarm.object3D.quaternion.identity();
+          beeSwarm.object3D.scale.set(1, 1, 1);
+        }
       }
 
       function spawnSwarm() {
@@ -1746,17 +1800,17 @@
         swarmSpawned = true;
         sfx('pop');
 
-        // 3D gltf bees in CAMERA-LOCAL space (parented to <a-camera>).
-        // -Z is forward; the bees orbit each centre point and stay roughly
-        // in front of the viewer regardless of how the phone is pointed.
+        // 3D gltf bees in target-local coordinate space.
+        // Centred at (0,0,0) = the can's image target centre.
+        // amp_* values are in MindAR-space units (≈ target image width).
         const configs = [
-          { scale:0.045, gold:false, centerX:-0.35, centerY: 0.20, centerZ:-1.4, ampX:0.20, ampY:0.14, ampZ:0.10, speedX:0.55, speedY:0.70, speedZ:0.35, phaseX:0.0, phaseY:1.2, phaseZ:0.5 },
-          { scale:0.035, gold:false, centerX: 0.40, centerY: 0.15, centerZ:-1.2, ampX:0.18, ampY:0.12, ampZ:0.10, speedX:0.85, speedY:1.00, speedZ:0.50, phaseX:1.4, phaseY:0.3, phaseZ:2.1 },
-          { scale:0.030, gold:false, centerX:-0.30, centerY:-0.20, centerZ:-1.6, ampX:0.22, ampY:0.16, ampZ:0.12, speedX:1.10, speedY:0.55, speedZ:0.70, phaseX:2.5, phaseY:1.8, phaseZ:0.1 },
-          { scale:0.040, gold:false, centerX: 0.35, centerY:-0.18, centerZ:-1.1, ampX:0.16, ampY:0.12, ampZ:0.08, speedX:0.45, speedY:0.90, speedZ:0.25, phaseX:3.2, phaseY:2.4, phaseZ:1.6 },
-          { scale:0.032, gold:false, centerX: 0.05, centerY: 0.35, centerZ:-1.5, ampX:0.20, ampY:0.14, ampZ:0.10, speedX:0.75, speedY:0.60, speedZ:0.55, phaseX:0.7, phaseY:3.0, phaseZ:2.7 },
-          // GOLD — larger, slower, dead-centre so it's the obvious tap target
-          { scale:0.060, gold:true,  centerX: 0.00, centerY: 0.00, centerZ:-1.3, ampX:0.20, ampY:0.14, ampZ:0.08, speedX:0.50, speedY:0.70, speedZ:0.40, phaseX:1.0, phaseY:0.0, phaseZ:0.0 },
+          { scale:0.045, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.45, ampY:0.30, ampZ:0.18, speedX:0.55, speedY:0.70, speedZ:0.35, phaseX:0.0, phaseY:1.2, phaseZ:0.5 },
+          { scale:0.035, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.38, ampY:0.26, ampZ:0.20, speedX:0.85, speedY:1.00, speedZ:0.50, phaseX:1.4, phaseY:0.3, phaseZ:2.1 },
+          { scale:0.030, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.55, ampY:0.34, ampZ:0.22, speedX:1.10, speedY:0.55, speedZ:0.70, phaseX:2.5, phaseY:1.8, phaseZ:0.1 },
+          { scale:0.040, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.30, ampY:0.24, ampZ:0.14, speedX:0.45, speedY:0.90, speedZ:0.25, phaseX:3.2, phaseY:2.4, phaseZ:1.6 },
+          { scale:0.032, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.48, ampY:0.32, ampZ:0.20, speedX:0.75, speedY:0.60, speedZ:0.55, phaseX:0.7, phaseY:3.0, phaseZ:2.7 },
+          // GOLD — larger, slower, orbits closer to the can
+          { scale:0.060, gold:true,  centerX:0, centerY:0, centerZ:0, ampX:0.32, ampY:0.22, ampZ:0.14, speedX:0.50, speedY:0.70, speedZ:0.40, phaseX:1.0, phaseY:0.0, phaseZ:0.0 },
         ];
 
         configs.forEach((c) => {
