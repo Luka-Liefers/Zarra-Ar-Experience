@@ -1725,56 +1725,41 @@
           spawnSwarm();
           goTo('bee');
         }
-        // ONE-TIME WORLD LOCK
+        // ONE-TIME WORLD-LOCK (THREE-ONLY)
         // ----------------------------------------------------------
-        // The first time the can is detected we snapshot the target's
-        // current pose and re-parent #bee-swarm from inside #target-0
-        // to the <a-scene> root, applying that pose as the new local
-        // transform. Result: the bees stay frozen at the spot where
-        // the can was first found and no longer follow MindAR's
-        // tracking updates — so they don't disappear when the can
-        // briefly goes out of frame or the tracker jitters.
+        // The first time the can is detected we move #bee-swarm OUT
+        // of #target-0 in the THREE.js scene graph — but NOT in the
+        // DOM. Object3D.attach() preserves the world transform
+        // mathematically, so the swarm visually stays exactly where
+        // it was at the lock moment. The DOM stays untouched, which
+        // means A-Frame's mutation observer never fires, components
+        // are never torn down and rebuilt, and the animation-mixer's
+        // wing-flap clip + free-fly Lissajous tick keep running.
+        // MindAR continues to track and update #target-0 normally,
+        // but those updates no longer affect the bees because
+        // they're no longer in target-0's transform chain.
         if (!swarmAnchored) {
           swarmAnchored = true;
-          // Defer one tick so MindAR has applied the latest pose to
-          // target-0's matrixWorld before we read it.
-          requestAnimationFrame(lockSwarmToWorld);
+          requestAnimationFrame(lockSwarmInWorld);
         }
       });
 
-      /* Reparent #bee-swarm from #target-0 to the <a-scene> root while
-         preserving its current world transform. After this point the
-         swarm is world-anchored — its position no longer changes when
-         the image target is lost or its pose updates. */
-      function lockSwarmToWorld() {
-        if (!beeSwarm || !beeSwarm.parentNode) return;
-        // Guard: only meaningful if currently inside target-0
-        if (beeSwarm.parentNode === scene) return;
+      /* Pure-THREE reparent: lift #bee-swarm out of #target-0 and
+         into the scene root, preserving world transform via attach().
+         No DOM mutation — animation-mixer + free-fly keep ticking. */
+      function lockSwarmInWorld() {
+        if (!beeSwarm || !beeSwarm.object3D) return;
         const swarmObj = beeSwarm.object3D;
-        if (!swarmObj) return;
+        if (swarmObj.parent === scene.object3D) return; // already locked
 
-        // Make sure the entire chain has fresh world matrices
-        swarmObj.updateWorldMatrix(true, false);
+        // attach() removes from current parent, adds to new parent,
+        // and computes the new local transform such that world stays.
+        scene.object3D.attach(swarmObj);
 
-        // Snapshot world transform (relative to the scene root, which is
-        // world space because the scene itself has identity transform).
-        const worldPos   = new THREE.Vector3();
-        const worldQuat  = new THREE.Quaternion();
-        const worldScale = new THREE.Vector3();
-        swarmObj.matrixWorld.decompose(worldPos, worldQuat, worldScale);
-
-        // DOM-level reparent. A-Frame keeps object3D references stable
-        // across moves, and re-attaches the THREE node to the new parent.
-        scene.appendChild(beeSwarm);
-
-        // The new parent (scene root) has identity world transform, so
-        // local = world. Re-apply the captured pose.
-        swarmObj.position.copy(worldPos);
-        swarmObj.quaternion.copy(worldQuat);
-        swarmObj.scale.copy(worldScale);
-
-        console.log('[bee-swarm] locked to world at',
-                    worldPos.toArray().map(n => n.toFixed(3)).join(', '));
+        const p = swarmObj.position;
+        console.log('[bee-swarm] world-locked at',
+                    p.x.toFixed(3), p.y.toFixed(3), p.z.toFixed(3),
+                    '(THREE only; DOM untouched)');
       }
 
       function clearSwarm() {
@@ -1783,12 +1768,13 @@
         goldBeeEntity = null;
         document.getElementById('bee-cta').hidden = true;
         while (beeSwarm.firstChild) beeSwarm.removeChild(beeSwarm.firstChild);
-        // If we previously moved bee-swarm to the scene root, put it back
-        // inside target-0 so the next session starts in the original
-        // (tracked) configuration.
-        const target = document.getElementById('target-0');
-        if (target && beeSwarm.parentNode !== target) {
-          target.appendChild(beeSwarm);
+        // Undo the THREE-only reparent so the next session starts in
+        // the original target-tracked configuration. We use add() (not
+        // attach()) so the new local transform is what we set below,
+        // not whatever world-preserving math attach() would compute.
+        const targetObj = target0 && target0.object3D;
+        if (targetObj && beeSwarm.object3D.parent !== targetObj) {
+          targetObj.add(beeSwarm.object3D);
           beeSwarm.object3D.position.set(0, 0, 0);
           beeSwarm.object3D.quaternion.identity();
           beeSwarm.object3D.scale.set(1, 1, 1);
