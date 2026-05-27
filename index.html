@@ -1803,14 +1803,17 @@
         // 3D gltf bees in target-local coordinate space.
         // Centred at (0,0,0) = the can's image target centre.
         // amp_* values are in MindAR-space units (≈ target image width).
+        // Scales are HALVED vs the original spec (50% smaller bees) and
+        // amplitudes are roughly doubled so the swarm visibly roams across
+        // the screen instead of clustering tight around the lock point.
         const configs = [
-          { scale:0.045, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.45, ampY:0.30, ampZ:0.18, speedX:0.55, speedY:0.70, speedZ:0.35, phaseX:0.0, phaseY:1.2, phaseZ:0.5 },
-          { scale:0.035, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.38, ampY:0.26, ampZ:0.20, speedX:0.85, speedY:1.00, speedZ:0.50, phaseX:1.4, phaseY:0.3, phaseZ:2.1 },
-          { scale:0.030, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.55, ampY:0.34, ampZ:0.22, speedX:1.10, speedY:0.55, speedZ:0.70, phaseX:2.5, phaseY:1.8, phaseZ:0.1 },
-          { scale:0.040, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.30, ampY:0.24, ampZ:0.14, speedX:0.45, speedY:0.90, speedZ:0.25, phaseX:3.2, phaseY:2.4, phaseZ:1.6 },
-          { scale:0.032, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.48, ampY:0.32, ampZ:0.20, speedX:0.75, speedY:0.60, speedZ:0.55, phaseX:0.7, phaseY:3.0, phaseZ:2.7 },
-          // GOLD — larger, slower, orbits closer to the can
-          { scale:0.060, gold:true,  centerX:0, centerY:0, centerZ:0, ampX:0.32, ampY:0.22, ampZ:0.14, speedX:0.50, speedY:0.70, speedZ:0.40, phaseX:1.0, phaseY:0.0, phaseZ:0.0 },
+          { scale:0.0225, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.10, ampY:0.70, ampZ:0.36, speedX:0.55, speedY:0.70, speedZ:0.35, phaseX:0.0, phaseY:1.2, phaseZ:0.5 },
+          { scale:0.0175, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.95, ampY:0.65, ampZ:0.40, speedX:0.85, speedY:1.00, speedZ:0.50, phaseX:1.4, phaseY:0.3, phaseZ:2.1 },
+          { scale:0.0150, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.30, ampY:0.80, ampZ:0.44, speedX:1.10, speedY:0.55, speedZ:0.70, phaseX:2.5, phaseY:1.8, phaseZ:0.1 },
+          { scale:0.0200, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.80, ampY:0.60, ampZ:0.28, speedX:0.45, speedY:0.90, speedZ:0.25, phaseX:3.2, phaseY:2.4, phaseZ:1.6 },
+          { scale:0.0160, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.15, ampY:0.78, ampZ:0.40, speedX:0.75, speedY:0.60, speedZ:0.55, phaseX:0.7, phaseY:3.0, phaseZ:2.7 },
+          // GOLD — slightly tighter orbit so it remains catchable
+          { scale:0.0300, gold:true,  centerX:0, centerY:0, centerZ:0, ampX:0.70, ampY:0.50, ampZ:0.28, speedX:0.50, speedY:0.70, speedZ:0.40, phaseX:1.0, phaseY:0.0, phaseZ:0.0 },
         ];
 
         configs.forEach((c) => {
@@ -1818,7 +1821,9 @@
           ent.classList.add('bee');
           ent.setAttribute('gltf-model', '#bee-model');
           ent.setAttribute('scale', `${c.scale} ${c.scale} ${c.scale}`);
-          ent.setAttribute('animation-mixer', 'timeScale: 1.4');
+          // Play the wing-flap clip embedded in bee.glb on loop. `clip: *`
+          // picks the first available animation regardless of its name.
+          ent.setAttribute('animation-mixer', 'clip: *; loop: repeat; timeScale: 1.4');
           ent.setAttribute('free-fly',
             `centerX:${c.centerX}; centerY:${c.centerY}; centerZ:${c.centerZ}; ` +
             `ampX:${c.ampX}; ampY:${c.ampY}; ampZ:${c.ampZ}; ` +
