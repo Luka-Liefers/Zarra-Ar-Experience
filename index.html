@@ -1107,13 +1107,7 @@
         <a-asset-item id="bee-model" src="./assets/bee.glb"></a-asset-item>
       </a-assets>
 
-      <a-camera position="0 0 0" look-controls="enabled: false">
-        <a-entity
-          id="ar-cursor"
-          cursor="fuse: false; rayOrigin: mouse"
-          raycaster="objects: .bee; far: 6; enabled: false">
-        </a-entity>
-      </a-camera>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-light type="ambient" color="#ffd9a0" intensity="0.95"></a-light>
       <a-light type="directional" color="#fff2c8" intensity="0.6" position="0.5 1 1"></a-light>
@@ -1428,7 +1422,6 @@
       const scene = document.querySelector('a-scene');
       const target0  = document.getElementById('target-0');
       const beeSwarm = document.getElementById('bee-swarm');
-      const arCursor = document.getElementById('ar-cursor');
       const xrBadge  = document.getElementById('xr-badge');
 
       function haptic(p) { try { navigator.vibrate && navigator.vibrate(p || [10]); } catch(_) {} }
@@ -1440,7 +1433,6 @@
         body.dataset.state = next;
         state = next;
         document.getElementById('bee-hint').classList.toggle('is-on', next === 'bee');
-        if (arCursor) arCursor.setAttribute('raycaster', 'enabled', next === 'bee');
         if (xrBadge) xrBadge.classList.toggle('is-on', next === 'bee' && webxrSupported);
         if (next === 'map') renderMap();
         if (next !== 'bee' && next !== 'scan') clearSwarm();
@@ -1695,9 +1687,8 @@
          renderOrder:999 + depthTest:false makes them always visible above
          the MindAR camera background plane in the same WebGL context.
          ============================================================ */
-      let swarmSpawned   = false;
-      let goldBeeEntity  = null;   // captured in spawnSwarm; used by screen-space hit test
-      let goldClickFired = false;  // guards against double-firing during the async transition
+      let swarmSpawned  = false;
+      let goldBeeEntity = null;   // captured in spawnSwarm; used by screen-space touch hit test
 
       /* ----------- WebXR capability probe -----------------------
        * MindAR drives the active AR session (it owns the camera + render
@@ -1736,9 +1727,8 @@
       });
 
       function clearSwarm() {
-        swarmSpawned   = false;
-        goldBeeEntity  = null;
-        goldClickFired = false;
+        swarmSpawned  = false;
+        goldBeeEntity = null;
         document.getElementById('bee-cta').hidden = true;
         while (beeSwarm.firstChild) beeSwarm.removeChild(beeSwarm.firstChild);
       }
@@ -1788,15 +1778,13 @@
           if (c.gold) {
             goldBeeEntity = ent;
             ent.setAttribute('gold-tint', '');
-            ent.addEventListener('click', onGoldBeeClicked); // A-Frame cursor path (may or may not catch)
           }
           beeSwarm.appendChild(ent);
         });
       }
 
       async function onGoldBeeClicked() {
-        if (state !== 'bee' || goldClickFired) return;
-        goldClickFired = true;
+        if (state !== 'bee') return;
         haptic([40, 30, 80]);
         sfx('gold');
         await stopMindAR();
@@ -1805,39 +1793,35 @@
       }
 
       /* ============================================================
-         GOLD-BEE SCREEN-SPACE HIT TEST
+         GOLD-BEE TOUCH HIT TEST
          ----------------------------------------------------------
-         A-Frame's mouse cursor + raycaster can be unreliable when
-         the target is a small, fast-moving 3D mesh on a phone — the
-         ray has to thread the needle exactly. We add a document-level
-         click handler that:
-           1. Reads the gold bee's WORLD position (it's parented to the
-              tracked image target, so this updates with MindAR's pose).
-           2. Projects that position to screen coordinates using the
-              active A-Frame camera.
-           3. Fires onGoldBeeClicked if the user tapped within ~64 px
-              of where the bee currently is on screen.
-         The A-Frame click path is kept as a primary; this is the
-         fallback. onGoldBeeClicked is guarded so they can't both fire.
+         MindAR intercepts pointer events before A-Frame's raycaster
+         sees them, so on mobile the cursor click path never fires.
+         Instead we listen for `touchend` directly on the document,
+         project the gold bee's world position to screen pixels,
+         and treat any tap within a generous radius as a hit. This
+         is exactly the approach used in the proven working prototype.
          ============================================================ */
-      const _goldHitVec = new THREE.Vector3();
-      document.addEventListener('click', (e) => {
-        if (state !== 'bee' || goldClickFired || !goldBeeEntity) return;
-        // Ignore taps on UI chrome (restart pill, etc.)
-        if (e.target.closest('button, input, select, a')) return;
+      const _tmpVec = new THREE.Vector3();
+      document.addEventListener('touchend', (e) => {
+        if (state !== 'bee' || !goldBeeEntity) return;
         const cam = scene.camera;
         if (!cam) return;
-        // Skip when the target isn't currently tracked (bees aren't visible)
-        if (target0.object3D && target0.object3D.visible === false) return;
-        goldBeeEntity.object3D.getWorldPosition(_goldHitVec);
-        _goldHitVec.project(cam);
-        if (_goldHitVec.z < -1 || _goldHitVec.z > 1) return; // off-screen depth
-        const sx = (_goldHitVec.x + 1) * 0.5 * window.innerWidth;
-        const sy = (1 - _goldHitVec.y) * 0.5 * window.innerHeight;
-        const dx = e.clientX - sx;
-        const dy = e.clientY - sy;
-        if (Math.hypot(dx, dy) < 64) onGoldBeeClicked();
-      });
+        const touch = e.changedTouches[0];
+        if (!touch) return;
+        // Project gold bee world position → NDC → screen pixels
+        goldBeeEntity.object3D.getWorldPosition(_tmpVec);
+        _tmpVec.project(cam);
+        const sx = ( _tmpVec.x * 0.5 + 0.5) * window.innerWidth;
+        const sy = (-_tmpVec.y * 0.5 + 0.5) * window.innerHeight;
+        const dx = touch.clientX - sx;
+        const dy = touch.clientY - sy;
+        // ~22% of the shorter viewport edge — thumb-sized hit area
+        const hitRadius = Math.min(window.innerWidth, window.innerHeight) * 0.22;
+        if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
+          onGoldBeeClicked();
+        }
+      }, { passive: true });
 
       document.getElementById('bee-cta').addEventListener('click', async () => {
         haptic([60]);
