@@ -53,6 +53,10 @@
       }
 
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      /* Disable double-tap zoom on every screen except the map scroll area.
+         touch-action does not inherit, but setting it on html/body is the
+         cross-browser way to block document-level double-tap zoom. */
+      html, body { touch-action: manipulation; }
 
       html, body {
         height: 100%;
@@ -489,7 +493,7 @@
         box-shadow: 0 8px 22px rgba(228,128,67,0.45);
         opacity: 0;
         transform: translateY(20px);
-        transition: opacity 0.6s ease 1.6s, transform 0.6s ease 1.6s;
+        transition: opacity 0.5s ease 0.5s, transform 0.5s ease 0.5s;
       }
       #screen-bee.is-active .bee-cta {
         opacity: 1;
@@ -510,27 +514,15 @@
         inset: 0;
         z-index: 0;
         pointer-events: none;
-        background:
-          radial-gradient(circle at 12% 8%, rgba(228,128,67,0.18) 0 60px, transparent 80px),
-          radial-gradient(circle at 88% 16%, rgba(228,128,67,0.18) 0 80px, transparent 100px);
-        opacity: 0.55;
+        background-color: #f5f0e8;
+        background-image: url('./assets/trace_bg.jpeg?v=2');
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;
       }
-      .profile-dots {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        opacity: 0.45;
-        pointer-events: none;
-      }
-      .profile-bee {
-        position: absolute;
-        z-index: 0;
-        font-size: 2.6rem;
-        opacity: 0.55;
-        filter: hue-rotate(-12deg) saturate(0.9);
-      }
-      .profile-bee.b1 { top: 5%;  left: 8%; transform: rotate(-12deg); }
-      .profile-bee.b2 { top: 10%; right: 6%; transform: rotate(18deg) scaleX(-1); font-size: 3rem; }
+      /* Halftone-style bees at the top, mimicking the figma decoration */
+      /* Bee decorations hidden — background image already has them */
+      .profile-bee { display: none; }
       .profile-back {
         position: absolute;
         top: max(env(safe-area-inset-top, 0px), 1rem);
@@ -550,6 +542,7 @@
         padding: 1.8rem 1.6rem 1.7rem;
         box-shadow: 0 20px 50px rgba(0,0,0,0.18);
         color: #fff;
+        text-align: center;
       }
       .profile-title {
         margin: 0 0 1.4rem;
@@ -557,6 +550,7 @@
         font-size: 1.85rem;
         letter-spacing: 0.07em;
         line-height: 1.1;
+        text-align: center;
       }
       .profile-label {
         display: block;
@@ -565,7 +559,10 @@
         font-weight: 600;
         font-size: 1rem;
         color: #fff;
+        text-align: left;
       }
+      .profile-field input,
+      .profile-field select { text-align: left; }
       .profile-field {
         position: relative;
         margin-bottom: 1.1rem;
@@ -631,34 +628,43 @@
         position: relative;
         width: 100%;
         height: 100%;
-        overflow: auto;
+        overflow-x: auto;
+        overflow-y: hidden;
+        display: flex;
+        align-items: center;
         -webkit-overflow-scrolling: touch;
         scroll-behavior: smooth;
         scrollbar-width: none;
+        touch-action: pan-x;
       }
       .map-wrap::-webkit-scrollbar { display: none; }
-      /* Stage holds the map image + pin layer at a fixed aspect ratio so
-         lat/lng → % math stays exact regardless of phone screen shape.
-         Map source aspect ratio: 7001 / 4001 ≈ 1.75. */
+      /* Stage holds the map image + pin layer. The image drives the stage
+         size: it fills the wrap's height and keeps its natural (landscape)
+         aspect ratio, so the stage overflows horizontally → horizontal
+         scroll. Pin %s stay exact because the stage box == the image box. */
       .map-stage {
         position: relative;
         height: 100%;
-        aspect-ratio: 1.75 / 1;
-        min-width: 100%;
+        flex: 0 0 auto;
         background: transparent;
         transform-origin: 0 0;
-        transition: width var(--t-med) var(--ease), height var(--t-med) var(--ease);
       }
       .map-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
+        display: block;
         height: 100%;
-        object-fit: fill;
+        width: auto;
+        object-fit: contain;
         user-select: none;
         -webkit-user-drag: none;
         pointer-events: none;
       }
+      /* Pin layer overlays the image box exactly */
+      #map-traces {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      #map-traces > * { pointer-events: auto; }
       /* "You are here" pulse pin */
       .here-pin {
         position: absolute;
@@ -720,8 +726,8 @@
       /* Trace pin (cherry / fruit icon) */
       .trace-pin {
         position: absolute;
-        width: 22px; height: 22px;
-        margin-left: -11px; margin-top: -11px;
+        width: 34px; height: 34px;
+        margin-left: -17px; margin-top: -17px;
         border-radius: 50%;
         background: #fff;
         display: grid;
@@ -737,34 +743,12 @@
       .trace-pin:active { transform: scale(0.9); }
       .trace-pin.is-mine { box-shadow: 0 0 0 2px var(--magenta), 0 4px 10px rgba(0,0,0,0.3); }
       .trace-pin.locked {
-        background: rgba(255,255,255,0.55);
-        color: rgba(40,28,14,0.5);
-        font-size: 0.62rem;
+        background: rgba(255,255,255,0.45);
+        opacity: 0.55;
+        filter: grayscale(0.4);
       }
 
       /* Map zoom controls */
-      .map-zoom {
-        position: absolute;
-        right: 1rem;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 11rem);
-        z-index: 7;
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-      }
-      .map-zoom button {
-        width: 36px; height: 36px;
-        border-radius: 50%;
-        background: rgba(255,255,255,0.92);
-        color: var(--ink);
-        font-size: 1.2rem;
-        font-weight: 700;
-        display: grid;
-        place-items: center;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.18);
-        line-height: 1;
-      }
-      .map-zoom button:active { transform: scale(0.93); }
 
       /* Trace bubble (quote callout) */
       .trace-bubble {
@@ -896,43 +880,70 @@
       }
       .trace-send:disabled { opacity: 0.5; }
 
-      /* Flavor strip (locked / unlocked) */
+      /* Flavor strip (locked / unlocked) — horizontal scroll */
       .flavor-strip {
         position: absolute;
-        top: max(env(safe-area-inset-top, 0px), 0.7rem);
-        left: 1rem;
-        right: 1rem;
+        top: max(env(safe-area-inset-top, 0px), 0.6rem);
+        left: 0;
+        right: 0;
         z-index: 6;
         display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        pointer-events: none;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 0.4rem;
+        padding: 0.2rem 0.8rem 0.4rem;
+        pointer-events: auto;
+        touch-action: pan-x;
+        overscroll-behavior-x: contain;
       }
+      .flavor-strip::-webkit-scrollbar { display: none; }
       .flavor-chip {
         background: rgba(255,255,255,0.92);
         border-radius: 999px;
-        padding: 0.35rem 0.85rem 0.35rem 0.4rem;
+        padding: 0.25rem 0.6rem 0.25rem 0.28rem;
         display: flex;
         align-items: center;
-        gap: 0.45rem;
-        font-size: 0.72rem;
+        gap: 0.3rem;
+        font-size: 0.62rem;
         font-weight: 700;
         color: var(--ink);
         letter-spacing: 0.04em;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.14);
         pointer-events: auto;
+        flex-shrink: 0;
+        white-space: nowrap;
       }
       .flavor-chip .pip {
-        width: 22px; height: 22px;
+        width: 20px; height: 20px;
         border-radius: 50%;
         display: grid;
         place-items: center;
-        font-size: 0.9rem;
+        font-size: 0.75rem;
         line-height: 1;
-        background: var(--orange-soft);
+        background: transparent;
+        overflow: hidden;
       }
-      .flavor-chip.locked { color: var(--ink-soft); background: rgba(255,255,255,0.75); }
-      .flavor-chip.locked .pip { background: rgba(0,0,0,0.08); }
+      .flav-ico {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        pointer-events: none;
+      }
+      /* SVG icons inside the round badges / bubble / trace pins */
+      .trace-bee-badge img { width: 80%; height: 80%; object-fit: contain; display: block; }
+      .community-badge img { width: 72%; height: 72%; object-fit: contain; display: block; }
+      .trace-bubble .bub-icon img { width: 82%; height: 82%; object-fit: contain; display: block; }
+      .trace-pin img { width: 88%; height: 88%; object-fit: contain; display: block; pointer-events: none; }
+      .flavor-chip.locked {
+        color: rgba(42,26,14,0.35);
+        background: rgba(255,255,255,0.6);
+        filter: grayscale(0.7) opacity(0.65);
+      }
+      .flavor-chip.locked .pip { background: transparent; }
 
       .map-back {
         position: absolute;
@@ -990,7 +1001,7 @@
         left: 50%;
         transform: translateX(-50%);
         width: 60px; height: 60px;
-        background: var(--orange);
+        background: #fff;
         color: #fff;
         border-radius: 50%;
         display: grid;
@@ -1087,6 +1098,111 @@
       body[data-state="bee"] .restart-btn,
       body[data-state="profile"] .restart-btn { display: grid; }
       body[data-state="map"]    .restart-btn { display: none; }
+
+      /* ==========================================================
+         FLAVOUR PICKER (scan screen — demo control)
+         ========================================================== */
+      .scan-picker {
+        position: fixed;
+        left: 0; right: 0;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 1.4rem);
+        z-index: 12;
+        display: flex;
+        justify-content: center;
+        gap: 0.55rem;
+        padding: 0 1rem;
+        pointer-events: auto;
+      }
+      /* Flavour is now detected via NFC — manual picker is hidden. */
+      .scan-picker { display: none !important; }
+      .scan-picker .sp-label {
+        position: absolute;
+        top: -1.4rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 0.65rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(253,246,227,0.55);
+        white-space: nowrap;
+      }
+      .scan-picker button {
+        flex: 1;
+        max-width: 110px;
+        padding: 0.6rem 0.4rem;
+        border-radius: 999px;
+        background: rgba(0,0,0,0.45);
+        border: 1px solid rgba(253,246,227,0.25);
+        color: #fdf6e3;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        backdrop-filter: blur(6px);
+        transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+      }
+      .scan-picker button:active { transform: scale(0.95); }
+      .scan-picker button.is-selected {
+        background: var(--orange);
+        border-color: var(--orange);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(228,128,67,0.4);
+      }
+
+      /* ==========================================================
+         GENERIC UX MODAL (NOT SO FAST · THANK YOU · SCAN A NEW BEER)
+         Reuses .community-overlay styles, just driven dynamically.
+         ========================================================== */
+      .flavor-chip.is-filter { cursor: pointer; pointer-events: auto; }
+      .flavor-chip.is-active {
+        background: var(--magenta);
+        color: #fff;
+        box-shadow: 0 6px 16px rgba(200,67,138,0.4);
+      }
+      .flavor-chip.is-active .pip { background: rgba(255,255,255,0.25); }
+
+      /* Post-submit, the trace-panel transforms into a "Join the community"
+         card — same bottom-sheet, simpler CTA. */
+      .join-block { display: none; text-align: center; }
+      .join-title {
+        margin: 0 0 0.5rem;
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        letter-spacing: 0.1em;
+      }
+      .join-body {
+        margin: 0 auto 0.9rem;
+        max-width: 22rem;
+        font-style: italic;
+        font-weight: 600;
+        font-size: 0.88rem;
+        line-height: 1.4;
+        color: rgba(255,255,255,0.92);
+      }
+      .join-link-hint {
+        margin: -0.3rem auto 0.75rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: rgba(255,255,255,0.7);
+      }
+      .join-btn {
+        background: var(--magenta);
+        color: #fff;
+        font-weight: 700;
+        font-size: 1rem;
+        padding: 0.85rem 2rem;
+        border-radius: 999px;
+        box-shadow: 0 6px 16px rgba(200,67,138,0.4);
+        transition: transform var(--t-fast) var(--ease);
+      }
+      .join-btn:active { transform: scale(0.97); }
+      body[data-submitted="1"] .join-block { display: block; }
+      body[data-submitted="1"] .trace-title,
+      body[data-submitted="1"] .trace-input-row { display: none; }
     </style>
   </head>
 
@@ -1185,11 +1301,21 @@
         <i></i><i></i>
       </div>
       <div class="scan-hint">
-        <span data-i18n="scanFind">Find the can</span>
+        <span data-i18n="scanFind">Find the bee</span>
         <em data-i18n="scanFrame">Frame it within</em>
       </div>
       <button class="dev-skip" id="dev-skip">Skip detect →</button>
     </section>
+
+    <!-- Demo flavour picker — simulates scanning a specific beer.
+         Sets activeFlavour at scan time so the rest of the UX flow works. -->
+    <div class="scan-picker" id="scan-picker">
+      <span class="sp-label" data-i18n="pickerHint">I'm scanning…</span>
+      <button data-flavour="orange">🍊 ORANGE</button>
+      <button data-flavour="honey">🍯 HONEY</button>
+      <button data-flavour="cherry">🍒 CHERRY</button>
+      <button data-flavour="lemon">🍋 LEMON</button>
+    </div>
 
     <!-- ============================================================
          STATE 4 · BEE (AR overlay UI)
@@ -1204,15 +1330,6 @@
          ============================================================ -->
     <section id="screen-profile" class="screen">
       <div class="profile-bg"></div>
-      <svg class="profile-dots" preserveAspectRatio="xMidYMid slice" viewBox="0 0 400 800">
-        <defs>
-          <pattern id="dotpat" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1.4" fill="#E48043"/>
-          </pattern>
-        </defs>
-        <path d="M40 540 Q120 480 220 530 T380 540 L380 760 L40 760 Z" fill="url(#dotpat)" opacity="0.7"/>
-        <path d="M0 80 Q80 60 160 100 L160 200 L0 200 Z" fill="url(#dotpat)" opacity="0.55"/>
-      </svg>
       <span class="profile-bee b1" aria-hidden="true">🐝</span>
       <span class="profile-bee b2" aria-hidden="true">🐝</span>
       <button class="profile-back" id="profile-back" aria-label="Back">‹</button>
@@ -1246,9 +1363,9 @@
           <label class="profile-label" for="name" data-i18n="profName">Your name</label>
           <input id="name" name="name" type="text" placeholder="Sara" autocomplete="given-name" />
         </div>
-      </div>
 
-      <button class="profile-continue" id="profile-continue" data-i18n="profContinue" disabled>Continue</button>
+        <button class="profile-continue" id="profile-continue" data-i18n="profContinue" disabled>Continue</button>
+      </div>
     </section>
 
     <!-- ============================================================
@@ -1257,22 +1374,19 @@
     <section id="screen-map" class="screen">
       <button class="map-back" id="map-back" aria-label="Restart">↺</button>
 
-      <div class="flavor-strip" id="flavor-strip">
-        <div class="flavor-chip"><span class="pip">🍊</span><span data-i18n="flavorOrange">ALBA · Orange Wheat</span></div>
-        <div class="flavor-chip locked"><span class="pip">🔒</span><span data-i18n="locked">Locked</span></div>
-        <div class="flavor-chip locked"><span class="pip">🔒</span><span data-i18n="locked">Locked</span></div>
-      </div>
+      <!-- Flavour strip is built dynamically by renderFlavourStrip() -->
+      <div class="flavor-strip" id="flavor-strip"></div>
 
       <div class="map-wrap" id="map-wrap">
         <div class="map-stage" id="map-stage">
-          <img class="map-img" src="./assets/world-map.png" alt="" draggable="false" />
+          <img class="map-img" src="./assets/world-map-wide.png?v=1" alt="" draggable="false" />
           <!-- Traces + here-pin injected by JS, positioned in % of this stage -->
           <div id="map-traces"></div>
         </div>
 
         <!-- The single popup bubble (re-used for whichever pin is tapped) -->
         <div class="trace-bubble" id="trace-bubble" role="dialog" aria-modal="false">
-          <div class="bub-icon" id="bub-icon">🍒</div>
+          <div class="bub-icon" id="bub-icon"><img src="./assets/honey.svg" alt="" draggable="false"></div>
           <button class="bub-close" id="bub-close" aria-label="Close">✕</button>
           <p class="bub-quote" id="bub-quote"></p>
           <span class="bub-meta">
@@ -1283,20 +1397,33 @@
         </div>
       </div>
 
-      <div class="map-zoom" id="map-zoom">
-        <button id="zoom-in" aria-label="Zoom in" type="button">+</button>
-        <button id="zoom-out" aria-label="Zoom out" type="button">−</button>
-      </div>
 
       <div class="trace-panel">
-        <div class="trace-bee-badge" aria-hidden="true">🐝</div>
+        <div class="trace-bee-badge" aria-hidden="true"><img src="./assets/bee.svg" alt="" draggable="false"></div>
         <h3 class="trace-title" data-i18n="traceTitle">LEAVE YOUR TRACE…</h3>
         <div class="trace-input-row">
           <input id="trace-input" type="text" data-i18n-placeholder="tracePlaceholder" placeholder="type here …" maxlength="120" />
           <button class="trace-send" id="trace-send" data-i18n="traceSend" disabled>Send</button>
         </div>
+
+        <!-- Post-submit: replaces the trace input with a single "Join" CTA -->
+        <div class="join-block">
+          <h3 class="join-title" data-i18n="commTitle">JOIN THE COMMUNITY</h3>
+          <p class="join-body" data-i18n="commBody">Be the first to taste new flavors, hear stories from the brewery, and meet other people who left a trace.</p>
+          <p class="join-link-hint" data-i18n="commLinkHint">Takes you to cerveceriadezarra.es</p>
+          <button class="join-btn" id="join-btn" data-i18n="commJoin">Join</button>
+        </div>
       </div>
     </section>
+
+    <!-- ============================================================
+         GENERIC UX MODAL  (NOT SO FAST · THANK YOU · SCAN A NEW BEER)
+         Separate from the community overlay so innerHTML can be mutated
+         freely without breaking the community card's static listeners.
+         ============================================================ -->
+    <div class="community-overlay" id="ux-overlay" hidden>
+      <div class="community-card" id="ux-card"></div>
+    </div>
 
     <!-- ============================================================
          JOIN THE COMMUNITY  (overlay after first trace)
@@ -1419,6 +1546,55 @@
       const STATES = ['intro', 'permission', 'scan', 'bee', 'profile', 'map'];
       let state = 'intro';
       const body = document.body;
+
+      /* ============================================================
+         FLAVOUR SYSTEM
+         ----------------------------------------------------------
+         activeFlavour          → flavour of the most recently scanned beer
+         unlockedFlavours       → Set of flavours fully unlocked (scanned + trace submitted)
+         submittedTraces        → { honey: true, cherry: false, ... }
+         hasProfile             → first run vs. subsequent scans
+         ============================================================ */
+      const FLAVOURS = {
+        honey:  { id: 'honey',  icon: './assets/honey.svg',          label: 'HONEY'  },
+        orange: { id: 'orange', icon: './assets/orange.svg',         label: 'ORANGE' },
+        cherry: { id: 'cherry', icon: './assets/sour%20cherry.svg',  label: 'SOUR CHERRY' },
+        lemon:  { id: 'lemon',  icon: './assets/sweet%20cherry.svg', label: 'SWEET CHERRY' },
+        fig:    { id: 'fig',    icon: './assets/fig.svg',            label: 'FIG' },
+      };
+      const FLAVOUR_ORDER = ['honey', 'orange', 'cherry', 'lemon', 'fig'];
+      // Returns an <img> HTML string for a flavour's icon (falls back to bee).
+      function flavourIconHTML(fid) {
+        const f = FLAVOURS[fid];
+        const src = f ? f.icon : './assets/bee.svg';
+        return `<img src="${src}" alt="" class="flav-ico" draggable="false">`;
+      }
+
+      let activeFlavour = null;
+      let unlockedFlavours = new Set();
+      let submittedTraces = {};
+      let hasProfile = false;
+      let activeFilter = null;          // which flavour the map is filtered to (post-submit)
+
+      function loadFlavourState() {
+        try {
+          const s = JSON.parse(localStorage.getItem('zarra:flavours') || 'null');
+          if (s) {
+            unlockedFlavours = new Set(s.unlocked || []);
+            submittedTraces  = s.submitted || {};
+          }
+        } catch (_) {}
+        try {
+          hasProfile = !!JSON.parse(localStorage.getItem('zarra:profile') || 'null');
+        } catch (_) {}
+      }
+      function saveFlavourState() {
+        localStorage.setItem('zarra:flavours', JSON.stringify({
+          unlocked:  [...unlockedFlavours],
+          submitted: submittedTraces,
+        }));
+      }
+      loadFlavourState();
       const scene = document.querySelector('a-scene');
       const target0  = document.getElementById('target-0');
       const beeSwarm = document.getElementById('bee-swarm');
@@ -1447,13 +1623,13 @@
           tagline: 'Beer, Land and People',
           desc: 'Based on the Spanish tradition of La Sobremesa – time spent chatting and connecting after a meal, this time your beer!',
           cta: 'Start Experience',
-          permTitle: 'CAMERA ACCESS',
-          permBody: 'zarra.cervesa wants to use your camera<br/>to bring something to life',
-          permDeny: 'Not Now',
+          permTitle: 'CAMERA & LOCATION',
+          permBody: 'zarra.cervesa would like to use your <b>camera</b> to bring something to life and your <b>location</b> to place your trace on the map.<br/><br/><small>We also store a few cookies to remember your trace between visits.</small>',
+          permDeny: 'Deny',
           permAllow: 'Allow',
-          scanFind: 'Find the can',
+          scanFind: 'Find the bee',
           scanFrame: 'Frame it within',
-          beeMsg: 'Catch the golden bee…',
+          beeMsg: 'Tap the golden bee.',
           beeCta: 'Continue',
           xrReady: 'Spatial mode',
           profTitle: 'TELL US ABOUT<br/>YOURSELF',
@@ -1470,19 +1646,30 @@
           commBody: 'Be the first to taste new flavors, hear stories from the brewery, and meet other people who left a trace.',
           commJoin: 'Join',
           commLater: 'Maybe later',
+          commLinkHint: '↗ Takes you to cerveceriadezarra.es',
+          pickerHint: "I'm scanning…",
+          scanAgain: 'Scan another beer',
+          mNotSoFastTitle: 'NOT SO FAST…',
+          mNotSoFastBody:  'Leave your own trace to find out what others had to say',
+          mThanksTitle:    'THANK YOU FOR LEAVING YOUR TRACE',
+          mThanksBody:     'Thank you for taking part in La Sobremesa. Your story is now part of the {flavour} community — cheers!',
+          mScanNewTitle:   'SCAN A NEW BEER',
+          mScanNewBody:    'To unlock new flavoured traces',
+          mScanNewCta:     'Back to AR',
+          mOkay:           'Got it',
         },
         es: {
           title: 'CERVECERIA DE ZARRA',
           tagline: 'Cerveza, Tierra y Gente',
           desc: 'Basado en la tradición española de La Sobremesa – tiempo dedicado a charlar y conectar después de una comida, ¡esta vez con tu cerveza!',
           cta: 'Comenzar Experiencia',
-          permTitle: 'ACCESO A LA CÁMARA',
-          permBody: 'zarra.cervesa quiere usar tu cámara<br/>para dar vida a algo',
-          permDeny: 'Ahora No',
+          permTitle: 'CÁMARA Y UBICACIÓN',
+          permBody: 'zarra.cervesa quiere usar tu <b>cámara</b> para dar vida a algo y tu <b>ubicación</b> para colocar tu huella en el mapa.<br/><br/><small>También usamos algunas cookies para recordar tu huella entre visitas.</small>',
+          permDeny: 'Rechazar',
           permAllow: 'Permitir',
-          scanFind: 'Encuentra la lata',
-          scanFrame: 'Encuádrala dentro',
-          beeMsg: 'Atrapa la abeja dorada…',
+          scanFind: 'Encuentra la abeja',
+          scanFrame: 'Encuádralo dentro',
+          beeMsg: 'Toca la abeja dorada.',
           beeCta: 'Continuar',
           xrReady: 'Modo espacial',
           profTitle: 'CUÉNTANOS<br/>SOBRE TI',
@@ -1499,6 +1686,17 @@
           commBody: 'Sé el primero en probar nuevos sabores, escuchar historias de la cervecería y conocer a otras personas que dejaron una huella.',
           commJoin: 'Unirme',
           commLater: 'Quizás más tarde',
+          commLinkHint: '↗ Te lleva a cerveceriadezarra.es',
+          pickerHint: 'Estoy escaneando…',
+          scanAgain: 'Escanear otra cerveza',
+          mNotSoFastTitle: 'ESPERA…',
+          mNotSoFastBody:  'Deja tu huella para descubrir lo que otros dijeron',
+          mThanksTitle:    'GRACIAS POR DEJAR TU HUELLA',
+          mThanksBody:     'Gracias por participar en La Sobremesa. Tu historia ya forma parte de la comunidad {flavour} — ¡salud!',
+          mScanNewTitle:   'ESCANEA UNA NUEVA CERVEZA',
+          mScanNewBody:    'Para desbloquear nuevas huellas de sabor',
+          mScanNewCta:     'Volver a AR',
+          mOkay:           'Entendido',
         },
       };
       let lang = (localStorage.getItem('zarra:lang') || 'en');
@@ -1675,11 +1873,52 @@
       });
       document.getElementById('perm-allow').addEventListener('click', async () => {
         haptic([80]);
+        // Ask the browser for location at the same moment as the camera.
+        // The native prompt is queued by the OS; we don't wait on the
+        // result here because the AR flow shouldn't block on it.
+        try {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const p = latLngToPercent(latitude, longitude);
+                if (p) {
+                  myCoord = { x: p.x, y: p.y, source: 'geo', lat: latitude, lng: longitude };
+                  if (state === 'map') renderMap();
+                }
+              },
+              () => {},
+              { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
+            );
+          }
+        } catch (_) {}
         goTo('scan');
         const start = () => startMindAR();
         if (scene.hasLoaded) await start();
         else scene.addEventListener('loaded', start, { once: true });
       });
+
+      /* ---------- Scan-screen flavour picker (demo control) ---------
+         The image target is a single can, so for demo purposes the user
+         picks which flavour they are "scanning". This sets activeFlavour
+         at the moment of detection so the rest of the flow is real. */
+      const scanPicker = document.getElementById('scan-picker');
+      // NFC-driven flow: only honey beer exists for now, so the scan
+      // always commits the honey flavour. Manual picker UI is hidden.
+      let pickedFlavour = 'honey';
+      function updatePickerUI() {
+        scanPicker.querySelectorAll('button').forEach((b) => {
+          b.classList.toggle('is-selected', b.dataset.flavour === pickedFlavour);
+        });
+      }
+      scanPicker.querySelectorAll('button').forEach((b) => {
+        b.addEventListener('click', () => {
+          pickedFlavour = b.dataset.flavour;
+          updatePickerUI();
+          haptic([15]);
+        });
+      });
+      updatePickerUI();
 
       /* ============================================================
          SCAN → BEE (target detection)
@@ -1687,9 +1926,9 @@
          renderOrder:999 + depthTest:false makes them always visible above
          the MindAR camera background plane in the same WebGL context.
          ============================================================ */
-      let swarmSpawned  = false;
-      let goldBeeEntity = null;   // captured in spawnSwarm; used by screen-space touch hit test
-      let swarmAnchored = false;  // becomes true after the first lock to world space
+      let swarmSpawned   = false;
+      let goldBeeEntities = [];   // all gold bees — any hit counts
+      let swarmAnchored  = false; // becomes true after the first lock to world space
 
       /* ----------- WebXR capability probe -----------------------
        * MindAR drives the active AR session (it owns the camera + render
@@ -1721,6 +1960,8 @@
 
       target0.addEventListener('targetFound', () => {
         if (state === 'scan') {
+          // Commit the demo-picked flavour as the active one for this scan
+          activeFlavour = pickedFlavour;
           haptic([80, 60, 140]);
           spawnSwarm();
           goTo('bee');
@@ -1763,9 +2004,9 @@
       }
 
       function clearSwarm() {
-        swarmSpawned  = false;
-        swarmAnchored = false;
-        goldBeeEntity = null;
+        swarmSpawned    = false;
+        swarmAnchored   = false;
+        goldBeeEntities = [];
         document.getElementById('bee-cta').hidden = true;
         while (beeSwarm.firstChild) beeSwarm.removeChild(beeSwarm.firstChild);
         // Undo the THREE-only reparent so the next session starts in
@@ -1793,13 +2034,18 @@
         // amplitudes are roughly doubled so the swarm visibly roams across
         // the screen instead of clustering tight around the lock point.
         const configs = [
-          { scale:0.0225, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.10, ampY:0.70, ampZ:0.36, speedX:0.55, speedY:0.70, speedZ:0.35, phaseX:0.0, phaseY:1.2, phaseZ:0.5 },
-          { scale:0.0175, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.95, ampY:0.65, ampZ:0.40, speedX:0.85, speedY:1.00, speedZ:0.50, phaseX:1.4, phaseY:0.3, phaseZ:2.1 },
-          { scale:0.0150, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.30, ampY:0.80, ampZ:0.44, speedX:1.10, speedY:0.55, speedZ:0.70, phaseX:2.5, phaseY:1.8, phaseZ:0.1 },
-          { scale:0.0200, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.80, ampY:0.60, ampZ:0.28, speedX:0.45, speedY:0.90, speedZ:0.25, phaseX:3.2, phaseY:2.4, phaseZ:1.6 },
-          { scale:0.0160, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.15, ampY:0.78, ampZ:0.40, speedX:0.75, speedY:0.60, speedZ:0.55, phaseX:0.7, phaseY:3.0, phaseZ:2.7 },
-          // GOLD — slightly tighter orbit so it remains catchable
-          { scale:0.0300, gold:true,  centerX:0, centerY:0, centerZ:0, ampX:0.70, ampY:0.50, ampZ:0.28, speedX:0.50, speedY:0.70, speedZ:0.40, phaseX:1.0, phaseY:0.0, phaseZ:0.0 },
+          // Regular bees — moderate speed, visible roaming
+          { scale:0.0225, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.10, ampY:0.70, ampZ:0.36, speedX:0.55, speedY:0.65, speedZ:0.38, phaseX:0.0, phaseY:1.2, phaseZ:0.5 },
+          { scale:0.0175, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.95, ampY:0.65, ampZ:0.40, speedX:0.68, speedY:0.78, speedZ:0.44, phaseX:1.4, phaseY:0.3, phaseZ:2.1 },
+          { scale:0.0150, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.30, ampY:0.80, ampZ:0.44, speedX:0.80, speedY:0.54, speedZ:0.52, phaseX:2.5, phaseY:1.8, phaseZ:0.1 },
+          { scale:0.0200, gold:false, centerX:0, centerY:0, centerZ:0, ampX:0.80, ampY:0.60, ampZ:0.28, speedX:0.50, speedY:0.70, speedZ:0.34, phaseX:3.2, phaseY:2.4, phaseZ:1.6 },
+          { scale:0.0160, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.15, ampY:0.78, ampZ:0.40, speedX:0.62, speedY:0.56, speedZ:0.46, phaseX:0.7, phaseY:3.0, phaseZ:2.7 },
+          { scale:0.0180, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.00, ampY:0.72, ampZ:0.38, speedX:0.72, speedY:0.60, speedZ:0.40, phaseX:1.8, phaseY:0.9, phaseZ:1.3 },
+          { scale:0.0155, gold:false, centerX:0, centerY:0, centerZ:0, ampX:1.20, ampY:0.68, ampZ:0.34, speedX:0.58, speedY:0.74, speedZ:0.30, phaseX:4.0, phaseY:2.1, phaseZ:3.5 },
+          // GOLD (×3) — spread phases so at least one is always near-center
+          { scale:0.0300, gold:true,  centerX:0, centerY:0, centerZ:0, ampX:0.45, ampY:0.28, ampZ:0.18, speedX:0.70, speedY:0.80, speedZ:0.50, phaseX:0.0, phaseY:0.0, phaseZ:0.0 },
+          { scale:0.0260, gold:true,  centerX:0, centerY:0, centerZ:0, ampX:0.50, ampY:0.32, ampZ:0.20, speedX:0.65, speedY:0.75, speedZ:0.45, phaseX:2.1, phaseY:1.0, phaseZ:1.6 },
+          { scale:0.0240, gold:true,  centerX:0, centerY:0, centerZ:0, ampX:0.42, ampY:0.26, ampZ:0.16, speedX:0.75, speedY:0.85, speedZ:0.55, phaseX:4.2, phaseY:2.0, phaseZ:3.1 },
         ];
 
         configs.forEach((c) => {
@@ -1809,14 +2055,18 @@
           ent.setAttribute('scale', `${c.scale} ${c.scale} ${c.scale}`);
           // Play the wing-flap clip embedded in bee.glb on loop. `clip: *`
           // picks the first available animation regardless of its name.
-          ent.setAttribute('animation-mixer', 'clip: *; loop: repeat; timeScale: 1.4');
+          // Start with clip:* so animation-mixer initialises the mixer,
+          // then in model-loaded we stop everything and loop only the last
+          // clip (the wing-flap), skipping any idle/rest clips.
+          ent.setAttribute('animation-mixer', 'clip: *; loop: repeat; timeScale: 1.8');
           ent.setAttribute('free-fly',
             `centerX:${c.centerX}; centerY:${c.centerY}; centerZ:${c.centerZ}; ` +
             `ampX:${c.ampX}; ampY:${c.ampY}; ampZ:${c.ampZ}; ` +
             `speedX:${c.speedX}; speedY:${c.speedY}; speedZ:${c.speedZ}; ` +
             `phaseX:${c.phaseX}; phaseY:${c.phaseY}; phaseZ:${c.phaseZ}`
           );
-          // Force bees to render above the MindAR camera background plane
+          // Force bees to render above the MindAR camera background plane,
+          // then hijack the AnimationMixer to loop ONLY the wing-flap clip.
           ent.addEventListener('model-loaded', () => {
             ent.object3D.traverse((node) => {
               if (!node.isMesh) return;
@@ -1827,9 +2077,25 @@
                 node.material.needsUpdate = true;
               }
             });
+
+            // Play only the last animation clip (wing-flap).
+            // The bee.glb has two clips: [0] idle/rest, [1] wing-flap.
+            // animation-mixer uses clip:* which sequences them, giving the
+            // "stays still then flaps" behaviour. We override that here by
+            // stopping all current actions and starting only the last clip.
+            const mixerComp = ent.components['animation-mixer'];
+            const gltfComp  = ent.components['gltf-model'];
+            const allClips  = (gltfComp && gltfComp.model && gltfComp.model.animations) || [];
+            if (mixerComp && mixerComp.mixer && allClips.length > 0) {
+              mixerComp.mixer.stopAllAction();
+              const action     = mixerComp.mixer.clipAction(allClips[allClips.length - 1]);
+              action.loop      = THREE.LoopRepeat;
+              action.timeScale = 1.8;
+              action.play();
+            }
           });
           if (c.gold) {
-            goldBeeEntity = ent;
+            goldBeeEntities.push(ent);
             ent.setAttribute('gold-tint', '');
           }
           beeSwarm.appendChild(ent);
@@ -1842,7 +2108,9 @@
         sfx('gold');
         await stopMindAR();
         clearSwarm();
-        goTo('profile');
+        // First time → profile; subsequent scans → straight to map with the
+        // new activeFlavour. Profile fields are remembered in localStorage.
+        goTo(hasProfile ? 'map' : 'profile');
       }
 
       /* ============================================================
@@ -1857,22 +2125,24 @@
          ============================================================ */
       const _tmpVec = new THREE.Vector3();
       document.addEventListener('touchend', (e) => {
-        if (state !== 'bee' || !goldBeeEntity) return;
+        if (state !== 'bee' || !goldBeeEntities.length) return;
         const cam = scene.camera;
         if (!cam) return;
         const touch = e.changedTouches[0];
         if (!touch) return;
-        // Project gold bee world position → NDC → screen pixels
-        goldBeeEntity.object3D.getWorldPosition(_tmpVec);
-        _tmpVec.project(cam);
-        const sx = ( _tmpVec.x * 0.5 + 0.5) * window.innerWidth;
-        const sy = (-_tmpVec.y * 0.5 + 0.5) * window.innerHeight;
-        const dx = touch.clientX - sx;
-        const dy = touch.clientY - sy;
-        // ~22% of the shorter viewport edge — thumb-sized hit area
+        // Check every gold bee — hit any one to trigger
         const hitRadius = Math.min(window.innerWidth, window.innerHeight) * 0.22;
-        if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
-          onGoldBeeClicked();
+        for (const bee of goldBeeEntities) {
+          bee.object3D.getWorldPosition(_tmpVec);
+          _tmpVec.project(cam);
+          const sx = ( _tmpVec.x * 0.5 + 0.5) * window.innerWidth;
+          const sy = (-_tmpVec.y * 0.5 + 0.5) * window.innerHeight;
+          const dx = touch.clientX - sx;
+          const dy = touch.clientY - sy;
+          if (Math.sqrt(dx*dx + dy*dy) < hitRadius) {
+            onGoldBeeClicked();
+            return;
+          }
         }
       }, { passive: true });
 
@@ -1880,7 +2150,7 @@
         haptic([60]);
         await stopMindAR();
         clearSwarm();
-        goTo('profile');
+        goTo(hasProfile ? 'map' : 'profile');
       });
 
       /* ============================================================
@@ -1920,6 +2190,7 @@
           flag: selectedOpt.dataset.flag || '🌍',
         };
         localStorage.setItem('zarra:profile', JSON.stringify(profile));
+        hasProfile = true;
         // Kick off geolocation (async, optional)
         requestGeolocation(profile);
         goTo('map');
@@ -1930,6 +2201,9 @@
          Falls back to profile country if denied / unavailable.
          ============================================================ */
       function latLngToPercent(lat, lng) {
+        // Reject obviously bad GPS readings (null-island, impossible coords)
+        if (Math.abs(lat) < 0.1 && Math.abs(lng) < 0.1) return null;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
         const p = latLngToPct(lat, lng);
         return {
           x: Math.max(1, Math.min(99, p.x)),
@@ -1948,8 +2222,12 @@
           (pos) => {
             const { latitude, longitude } = pos.coords;
             const p = latLngToPercent(latitude, longitude);
-            myCoord = { x: p.x, y: p.y, source: 'geo', lat: latitude, lng: longitude };
-            if (state === 'map') renderMap();
+            if (p) {
+              myCoord = { x: p.x, y: p.y, source: 'geo', lat: latitude, lng: longitude };
+              if (state === 'map') renderMap();
+            } else {
+              fallback();
+            }
           },
           () => fallback(),
           { enableHighAccuracy: false, timeout: 6000, maximumAge: 5 * 60 * 1000 }
@@ -1958,32 +2236,21 @@
 
       /* ============================================================
          MAP DATA
-         Coords are stored as % of the .map-wrap container. The world
-         map image (assets/world-map.png) is a stylised non-Mercator
-         layout — coords below were eyeballed against it.
+         Coords are stored as % of the .map-stage element.
+         world-map-wide.png (1276×631) is a standard Web Mercator
+         world map: longitude is linear across the full -180..180,
+         latitude follows the Mercator scale. Calibration was fitted
+         by pixel-sampling known landmarks on the actual image
+         (Greenland S tip @59.78°N, Cape Agulhas @-34.83°N) and
+         verified against ~20 world cities.
+           x% = (lng + 180) / 3.6
+           y% = 63.331 - 27.1886 * ln(tan(π/4 + lat·π/360))
          ============================================================ */
-      // The world-map.png is a stylised Mercator-like map with whitespace
-      // padding around the land area. These constants define the actual
-      // plot rectangle (in % of the image / stage) and the Mercator
-      // latitude bounds that map to its top & bottom edges.
-      const MAP_CALIB = {
-        xMin: 5.5,  xMax: 94.5,   // -180° → +180° longitude (linear)
-        yMin: 9.5,  yMax: 86.5,   // top/bottom of plot in image %
-        latTop:  76,              // approximate latitude at yMin (Mercator)
-        latBot: -63,              // approximate latitude at yMax (Mercator)
-      };
-      function _mercY(latDeg) {
-        // Returns Mercator y in [0, 1] where 0=top pole, 1=bottom pole.
-        const lat = Math.max(-85, Math.min(85, latDeg)) * Math.PI / 180;
-        return 0.5 - Math.asinh(Math.tan(lat)) / (2 * Math.PI);
-      }
-      const _Y_TOP = _mercY(MAP_CALIB.latTop);
-      const _Y_BOT = _mercY(MAP_CALIB.latBot);
       function latLngToPct(lat, lng) {
-        const x = MAP_CALIB.xMin + ((lng + 180) / 360) * (MAP_CALIB.xMax - MAP_CALIB.xMin);
-        const yMerc = _mercY(lat);
-        const yNorm = (yMerc - _Y_TOP) / (_Y_BOT - _Y_TOP);
-        const y = MAP_CALIB.yMin + yNorm * (MAP_CALIB.yMax - MAP_CALIB.yMin);
+        const x = (lng + 180) / 3.6;
+        const latC = Math.max(-85, Math.min(85, lat));   // Mercator poles → ∞
+        const merc = Math.log(Math.tan(Math.PI / 4 + (latC * Math.PI) / 360));
+        const y = 63.331 - 27.1886 * merc;
         return { x, y };
       }
       const COUNTRIES_LL = {
@@ -2003,46 +2270,67 @@
         JP: { lat: 36.2, lng: 138.3, label: 'JAPAN' },
         AU: { lat: -25.3,lng: 134.5, label: 'AUSTRALIA' },
       };
-      const COUNTRY_COORDS = Object.fromEntries(
-        Object.entries(COUNTRIES_LL).map(([cc, info]) => {
-          const p = latLngToPct(info.lat, info.lng);
-          return [cc, { x: p.x, y: p.y, label: info.label }];
-        })
-      );
+      // Country dropdown / GPS-fallback positions are derived directly from
+      // COUNTRIES_LL through the same Web Mercator projection, so the pins
+      // land on the correct landmass with a single source of truth.
+      const COUNTRY_COORDS = {};
+      for (const k in COUNTRIES_LL) {
+        const c = COUNTRIES_LL[k];
+        const p = latLngToPct(c.lat, c.lng);
+        COUNTRY_COORDS[k] = { x: p.x, y: p.y, label: c.label };
+      }
 
       const _SEEDS = [
-        // Unlocked (orange / ALBA) — sprinkled across Europe + Americas + Asia
-        { id: 's1', quote: 'This beer really reminds me of hot summers spent with my family.',
-          icon: '🍊', who: 'MARIA, SPAIN',         cc: 'ES', jx:-1.4, jy: 0.6 },
-        { id: 's2', quote: 'Perfect after a long shift — tastes like the coast.',
-          icon: '🍊', who: 'JOÃO, PORTUGAL',       cc: 'PT', jx: 0.4, jy:-1.2 },
-        { id: 's3', quote: 'Bringing a 6-pack to the rooftop tonight.',
-          icon: '🍊', who: 'EMMA, NETHERLANDS',    cc: 'NL', jx:-0.8, jy: 0.4 },
-        { id: 's4', quote: 'I drank one in the Andes and watched the sun fall.',
-          icon: '🍊', who: 'LUCAS, ARGENTINA',     cc: 'AR', jx: 1.2, jy:-0.8 },
-        { id: 's5', quote: 'Tastes like the orchards back home.',
-          icon: '🍊', who: 'AKIRA, JAPAN',         cc: 'JP', jx:-1.5, jy: 0.5 },
-        { id: 's6', quote: 'Reminds me of road trips through the desert.',
-          icon: '🍊', who: 'SOFIA, MEXICO',        cc: 'MX', jx: 1.0, jy: 1.0 },
-        { id: 's7', quote: 'Shared one with my dad watching the sunset.',
-          icon: '🍊', who: 'CARLOS, SPAIN',        cc: 'ES', jx: 1.6, jy:-1.4 },
-        { id: 's8', quote: 'A taste of home in a foreign city.',
-          icon: '🍊', who: 'LIAM, IRELAND',        cc: 'IE', jx: 0.6, jy: 0.9 },
-        { id: 's9', quote: 'Brought a crate to my brother’s wedding.',
-          icon: '🍊', who: 'PIERRE, FRANCE',       cc: 'FR', jx:-1.8, jy: 0.7 },
-        { id: 's10', quote: 'Cold one after a hot harvest.',
-          icon: '🍊', who: 'BEATRIZ, BRAZIL',      cc: 'BR', jx:-1.2, jy: 1.5 },
-        // Locked (other flavors) — spread across remaining map
-        { id: 'l1', quote: '', icon: '🍒', who: 'LOCKED', cc: 'IT', jx: 1.8, jy: 0.8 },
-        { id: 'l2', quote: '', icon: '🍒', who: 'LOCKED', cc: 'US', jx: 3.5, jy:-2.5 },
-        { id: 'l3', quote: '', icon: '🍒', who: 'LOCKED', cc: 'US', jx:-3.0, jy: 1.5 },
-        { id: 'l4', quote: '', icon: '🍒', who: 'LOCKED', cc: 'AU', jx: 1.2, jy:-1.8 },
-        { id: 'l5', quote: '', icon: '🍒', who: 'LOCKED', cc: 'AU', jx:-2.4, jy: 2.0 },
-        { id: 'l6', quote: '', icon: '🍒', who: 'LOCKED', cc: 'BR', jx: 2.6, jy:-2.2 },
-        { id: 'l7', quote: '', icon: '🍒', who: 'LOCKED', cc: 'DE', jx:-2.2, jy:-0.6 },
-        { id: 'l8', quote: '', icon: '🍒', who: 'LOCKED', cc: 'GB', jx: 0.9, jy: 1.4 },
-        { id: 'l9', quote: '', icon: '🍒', who: 'LOCKED', cc: 'BE', jx: 1.0, jy:-0.8 },
-        { id: 'l10', quote: '', icon: '🍒', who: 'LOCKED', cc: 'JP', jx: 1.6, jy: 1.8 },
+        // ORANGE traces
+        { id: 'o1', flavour:'orange', quote: 'This beer really reminds me of hot summers spent with my family.',
+          who: 'MARIA, SPAIN',      cc: 'ES', jx:-1.4, jy: 0.6 },
+        { id: 'o2', flavour:'orange', quote: 'Perfect after a long shift — tastes like the coast.',
+          who: 'JOÃO, PORTUGAL',    cc: 'PT', jx: 0.4, jy:-1.2 },
+        { id: 'o3', flavour:'orange', quote: 'Bringing a 6-pack to the rooftop tonight.',
+          who: 'EMMA, NETHERLANDS', cc: 'NL', jx:-0.8, jy: 0.4 },
+        { id: 'o4', flavour:'orange', quote: 'I drank one in the Andes and watched the sun fall.',
+          who: 'LUCAS, ARGENTINA',  cc: 'AR', jx: 1.2, jy:-0.8 },
+        { id: 'o5', flavour:'orange', quote: 'Tastes like the orchards back home.',
+          who: 'AKIRA, JAPAN',      cc: 'JP', jx:-1.5, jy: 0.5 },
+        { id: 'o6', flavour:'orange', quote: 'Shared one with my dad watching the sunset.',
+          who: 'CARLOS, SPAIN',     cc: 'ES', jx: 1.6, jy:-1.4 },
+        { id: 'o7', flavour:'orange', quote: 'A taste of home in a foreign city.',
+          who: 'LIAM, IRELAND',     cc: 'IE', jx: 0.6, jy: 0.9 },
+        { id: 'o8', flavour:'orange', quote: 'Cold one after a hot harvest.',
+          who: 'BEATRIZ, BRAZIL',   cc: 'BR', jx:-1.2, jy: 1.5 },
+        // HONEY traces
+        { id: 'h1', flavour:'honey', quote: 'This beer tastes like the lavender fields back home.',
+          who: 'MARIA, SPAIN',     cc: 'ES', jx:-1.4, jy: 0.6 },
+        { id: 'h2', flavour:'honey', quote: 'Sweet, slow, perfect after a long shift.',
+          who: 'JOÃO, PORTUGAL',   cc: 'PT', jx: 0.4, jy:-1.2 },
+        { id: 'h3', flavour:'honey', quote: 'Reminds me of my grandmother’s pantry.',
+          who: 'EMMA, NETHERLANDS',cc: 'NL', jx:-0.8, jy: 0.4 },
+        { id: 'h4', flavour:'honey', quote: 'I drank one watching the bees in the orchard.',
+          who: 'PIERRE, FRANCE',   cc: 'FR', jx:-1.8, jy: 0.7 },
+        { id: 'h5', flavour:'honey', quote: 'Honey beer at sunset — nothing else needed.',
+          who: 'LUCAS, ARGENTINA', cc: 'AR', jx: 1.2, jy:-0.8 },
+        // CHERRY traces
+        { id: 'c1', flavour:'cherry', quote: 'Bright like the cherries on my walk to school.',
+          who: 'GIULIA, ITALY',    cc: 'IT', jx: 1.8, jy: 0.8 },
+        { id: 'c2', flavour:'cherry', quote: 'Tart, fresh, and unexpected — love it.',
+          who: 'AKIRA, JAPAN',     cc: 'JP', jx:-1.5, jy: 0.5 },
+        { id: 'c3', flavour:'cherry', quote: 'My summer go-to from now on.',
+          who: 'SOFIA, MEXICO',    cc: 'MX', jx: 1.0, jy: 1.0 },
+        { id: 'c4', flavour:'cherry', quote: 'Shared one with my sister at the lake.',
+          who: 'LIAM, IRELAND',    cc: 'IE', jx: 0.6, jy: 0.9 },
+        { id: 'c5', flavour:'cherry', quote: 'Reminds me of the orchard near my grandparents.',
+          who: 'HANS, GERMANY',    cc: 'DE', jx:-2.2, jy:-0.6 },
+        // LEMON traces
+        { id: 'l1', flavour:'lemon', quote: 'Sharp and clean — like the Mediterranean.',
+          who: 'CARLOS, SPAIN',    cc: 'ES', jx: 1.6, jy:-1.4 },
+        { id: 'l2', flavour:'lemon', quote: 'Best beer after a long sail.',
+          who: 'BEATRIZ, BRAZIL',  cc: 'BR', jx:-1.2, jy: 1.5 },
+        { id: 'l3', flavour:'lemon', quote: 'A taste of the coast in every sip.',
+          who: 'OLIVIA, UK',       cc: 'GB', jx: 0.9, jy: 1.4 },
+        { id: 'l4', flavour:'lemon', quote: 'Bright. Cold. Honest.',
+          who: 'NOAH, USA',        cc: 'US', jx: 3.5, jy:-2.5 },
+        { id: 'l5', flavour:'lemon', quote: 'Drank one watching the surf at dawn.',
+          who: 'CHLOE, AUSTRALIA', cc: 'AU', jx: 1.2, jy:-1.8 },
       ];
       const SEED_TRACES = _SEEDS.map((s) => {
         const c = COUNTRY_COORDS[s.cc] || { x: 50, y: 50 };
@@ -2078,12 +2366,38 @@
 
       function renderMap() {
         tracesLayer.innerHTML = '';
+        renderFlavourStrip();
+        // Reflect submission state on body so CSS can flip the trace panel
+        body.dataset.submitted = (activeFlavour && submittedTraces[activeFlavour]) ? '1' : '0';
+
         const all = getTraces();
-        all.forEach((t) => {
+        const hasSubmittedActive = activeFlavour && !!submittedTraces[activeFlavour];
+
+        // PRE-SUBMIT  →  NO traces shown. The user must leave their own
+        //               trace before they can discover others.
+        // POST-SUBMIT →  all traces for flavours in unlockedFlavours,
+        //               filtered by activeFilter.
+        let visibleSet;
+        if (!hasSubmittedActive) {
+          visibleSet = new Set();
+        } else {
+          const filter = activeFilter || activeFlavour;
+          visibleSet = new Set(
+            all.filter((t) => t.flavour === filter && unlockedFlavours.has(t.flavour))
+               .map((t) => t.id)
+          );
+        }
+
+        const drawList = hasSubmittedActive
+          ? all.filter((t) => visibleSet.has(t.id) || (t.mine && t.flavour === (activeFilter || activeFlavour)))
+          : [];
+
+        drawList.forEach((t) => {
           const pin = document.createElement('button');
-          const locked = t.icon !== '🍊';
+          const isVisible = visibleSet.has(t.id) || (t.mine && hasSubmittedActive);
+          const locked = !isVisible;
           pin.className = 'trace-pin' + (t.mine ? ' is-mine' : '') + (locked ? ' locked' : '');
-          pin.textContent = locked ? '🔒' : '🍊';
+          pin.innerHTML = flavourIconHTML(t.flavour);
           pin.style.left = t.x + '%';
           pin.style.top  = t.y + '%';
           pin.dataset.locked = locked ? '1' : '0';
@@ -2091,7 +2405,26 @@
           pin.setAttribute('aria-label', 'Trace from ' + t.who);
           pin.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (locked) { haptic([20]); return; }
+            if (locked) {
+              haptic([20]);
+              // Pre-submit: any locked pin tap → "NOT SO FAST…"
+              // Post-submit: locked pin means a different flavour → "SCAN A NEW BEER"
+              if (!hasSubmittedActive) {
+                showModal({
+                  icon: '<img src="./assets/bee.svg" alt="" draggable="false">',
+                  title: I18N[lang].mNotSoFastTitle,
+                  body:  I18N[lang].mNotSoFastBody,
+                  primary: I18N[lang].mOkay,
+                });
+              } else {
+                showModal({
+                  title: I18N[lang].mScanNewTitle,
+                  body:  I18N[lang].mScanNewBody,
+                  primary: I18N[lang].mOkay,
+                });
+              }
+              return;
+            }
             openBubble(t, pin);
           });
           tracesLayer.appendChild(pin);
@@ -2112,11 +2445,125 @@
         centerOnUser();
       }
 
+      /* ----------------------------------------------------------
+         Flavour strip — top of map. Renders one chip per flavour.
+         States:
+           • active   — currently selected filter (post-submit)
+           • unlocked — clickable filter (post-submit, scanned+submitted)
+           • locked   — tapping shows "SCAN A NEW BEER" modal
+         Pre-submit it shows only the activeFlavour as the current chip
+         with the other two locked (no filter behaviour yet).
+         ---------------------------------------------------------- */
+      function renderFlavourStrip() {
+        const strip = document.getElementById('flavor-strip');
+        if (!strip) return;
+        strip.innerHTML = '';
+        const hasSubmittedActive = activeFlavour && !!submittedTraces[activeFlavour];
+        const filter = activeFilter || activeFlavour;
+
+        FLAVOUR_ORDER.forEach((fid) => {
+          const f = FLAVOURS[fid];
+          const isUnlocked = unlockedFlavours.has(fid);
+          const isActiveFilter = hasSubmittedActive && fid === filter;
+          const chip = document.createElement('button');
+          chip.className = 'flavor-chip';
+          if (isUnlocked && hasSubmittedActive) chip.classList.add('is-filter');
+          if (isActiveFilter) chip.classList.add('is-active');
+          if (!isUnlocked) chip.classList.add('locked');
+
+          const pip  = document.createElement('span');
+          pip.className = 'pip';
+          pip.innerHTML = flavourIconHTML(fid);   // SVG icon; CSS greys it when locked
+          const label = document.createElement('span');
+          label.textContent = f.label;
+          chip.appendChild(pip);
+          chip.appendChild(label);
+
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            haptic([15]);
+            if (!isUnlocked) {
+              showModal({
+                title: I18N[lang].mScanNewTitle,
+                body:  I18N[lang].mScanNewBody,
+                primary: I18N[lang].mOkay,
+              });
+              return;
+            }
+            if (!hasSubmittedActive) return; // pre-submit: chips aren't filters
+            activeFilter = fid;
+            renderMap();
+          });
+
+          strip.appendChild(chip);
+        });
+      }
+
+      /* ----------------------------------------------------------
+         Generic UX modal — reuses .community-overlay markup so it
+         already has nice transitions. We mutate its content per call.
+         Options:  { icon, title, body, primary, onPrimary,
+                     secondary, onSecondary }
+         ---------------------------------------------------------- */
+      function showModal(opts) {
+        const overlay = document.getElementById('ux-overlay');
+        const card    = document.getElementById('ux-card');
+        // One exit only: the primary button. No ✕ — keeps the modal
+        // visually balanced and avoids duplicate dismiss affordances.
+        const badgeHTML = opts.icon
+          ? `<div class="community-badge">${opts.icon}</div>`
+          : '';
+        card.innerHTML = `
+          ${badgeHTML}
+          <h3 class="community-title">${opts.title || ''}</h3>
+          <p class="community-body">${opts.body || ''}</p>
+          <div class="community-actions">
+            ${opts.secondary ? `<button class="community-btn community-btn--ghost" id="ux-secondary">${opts.secondary}</button>` : ''}
+            <button class="community-btn community-btn--solid" id="ux-primary">${opts.primary || 'OK'}</button>
+          </div>
+        `;
+        overlay.hidden = false;
+        requestAnimationFrame(() => overlay.classList.add('is-on'));
+
+        const close = () => {
+          overlay.classList.remove('is-on');
+          setTimeout(() => { overlay.hidden = true; }, 360);
+        };
+        document.getElementById('ux-primary').addEventListener('click', () => {
+          close();
+          if (opts.onPrimary) setTimeout(opts.onPrimary, 200);
+        });
+        if (opts.secondary) {
+          document.getElementById('ux-secondary').addEventListener('click', () => {
+            close();
+            if (opts.onSecondary) setTimeout(opts.onSecondary, 200);
+          });
+        }
+      }
+
+      /* ----------------------------------------------------------
+         Back to AR — return user to scan state with MindAR running.
+         Does NOT wipe profile or unlocked flavours; only clears the
+         active scan so the user can pick / scan a fresh beer.
+         ---------------------------------------------------------- */
+      async function backToAR() {
+        activeFlavour = null;
+        activeFilter  = null;
+        closeBubble();
+        traceInput.value = '';
+        traceSend.disabled = true;
+        body.dataset.submitted = '0';
+        goTo('scan');
+        const start = () => startMindAR();
+        if (scene.hasLoaded) await start();
+        else scene.addEventListener('loaded', start, { once: true });
+      }
+
       function centerOnUser() {
         const wrap = document.getElementById('map-wrap');
         const stage = document.getElementById('map-stage');
         if (!wrap || !stage) return;
-        // Defer a frame so layout has stabilised (stage width is set by aspect-ratio)
+        // Landscape map scrolls horizontally — centre on user's x position.
         requestAnimationFrame(() => {
           const focusX = (myCoord ? myCoord.x : 50) / 100;
           const target = focusX * stage.offsetWidth - wrap.clientWidth / 2;
@@ -2125,30 +2572,32 @@
       }
 
       function openBubble(t, pinEl) {
-        bubIcon.textContent  = t.icon || '🍒';
-        bubQuote.textContent = '“' + t.quote + '”';
+        bubIcon.innerHTML    = flavourIconHTML(t.flavour);
+        bubQuote.textContent = '”' + t.quote + '”';
         bubWho.textContent   = t.who;
         bubble.classList.add('is-open');
 
-        // The bubble lives INSIDE .map-wrap (the scroll container), so its
-        // absolute coordinates are in the wrap's content box. To anchor it
-        // to the same screen position as the pin, add scrollLeft back in.
+        // Landscape map scrolls horizontally. Bubble is absolutely positioned
+        // inside .map-wrap content box — add scrollLeft for x; y is direct
+        // (no vertical scroll).
         const wrap = document.getElementById('map-wrap');
         const r    = wrap.getBoundingClientRect();
         const pr   = pinEl.getBoundingClientRect();
-        const pxScreen = pr.left - r.left + pr.width / 2;     // pin centre in wrap viewport coords
-        const pyScreen = pr.top  - r.top;                      // pin top in viewport coords
-        const pxContent = pxScreen + wrap.scrollLeft;          // → wrap content coords
+        const pxScreen  = pr.left - r.left;            // pin x in viewport coords
+        const pyScreen  = pr.top  - r.top;             // pin y in viewport coords
+        const pxContent = pxScreen + wrap.scrollLeft;  // pin x in content coords
 
-        bubble.style.left = '50%';
-        bubble.style.transform = 'translate(-50%, 0)';
         const placeAbove = pyScreen > 180;
-        bubble.style.top = placeAbove ? (pyScreen - 130) + 'px' : (pyScreen + 32) + 'px';
+        const bubTop = placeAbove
+          ? pyScreen - 145
+          : pyScreen + pr.height + 8;
+
+        bubble.style.top = bubTop + 'px';
 
         requestAnimationFrame(() => {
           const bw = bubble.offsetWidth;
+          // Centre the bubble over the pin, clamped to the visible viewport.
           let left = pxContent - bw / 2;
-          // Keep within the currently-visible window
           const minLeft = wrap.scrollLeft + 10;
           const maxLeft = wrap.scrollLeft + r.width - bw - 10;
           left = Math.max(minLeft, Math.min(maxLeft, left));
@@ -2175,11 +2624,14 @@
 
       traceSend.addEventListener('click', () => {
         if (traceSend.disabled) return;
+        if (!activeFlavour) return;
+        // One trace per flavour, per session — guard against double submit
+        if (submittedTraces[activeFlavour]) return;
+
         const profile = (() => {
           try { return JSON.parse(localStorage.getItem('zarra:profile') || '{}'); }
           catch (_) { return {}; }
         })();
-        // Use the live geolocation pin if we have it, else fall back to country
         let coord, label;
         if (myCoord) {
           coord = { x: myCoord.x, y: myCoord.y };
@@ -2193,15 +2645,22 @@
         const jx = (Math.random() - 0.5) * 3;
         const jy = (Math.random() - 0.5) * 3;
         const t = {
-          id:    't' + Date.now(),
-          quote: traceInput.value.trim(),
-          icon:  '🍊', // current unlocked flavor (ALBA / orange)
-          who:   (profile.name || 'YOU').toUpperCase() + ', ' + label,
-          x:     coord.x + jx,
-          y:     coord.y + jy,
-          mine:  true,
+          id:       't' + Date.now(),
+          flavour:  activeFlavour,
+          quote:    traceInput.value.trim(),
+          who:      (profile.name || 'YOU').toUpperCase() + ', ' + label,
+          x:        coord.x + jx,
+          y:        coord.y + jy,
+          mine:     true,
         };
         addTrace(t);
+
+        // Update flavour state: mark submitted, unlock category
+        submittedTraces[activeFlavour] = true;
+        unlockedFlavours.add(activeFlavour);
+        activeFilter = activeFlavour;
+        saveFlavourState();
+
         traceInput.value = '';
         traceSend.disabled = true;
         renderMap();
@@ -2211,22 +2670,25 @@
         toast.classList.add('is-on');
         setTimeout(() => toast.classList.remove('is-on'), 1800);
 
-        // After render, scroll to user's pin and open the bubble for it.
-        // Give the user time to read their own message before the
-        // community modal interrupts.
-        requestAnimationFrame(() => {
-          centerOnUser();
-          // Look up by id rather than :last-child (rendering order can vary)
-          const mine = tracesLayer.querySelector(`.trace-pin[data-id="${t.id}"]`) ||
-                       tracesLayer.querySelector('.trace-pin.is-mine');
-          if (mine) {
-            // Wait one more frame for the bubble to position against the
-            // freshly-painted pin
-            requestAnimationFrame(() => openBubble(t, mine));
-          }
-        });
-        // 4.5s pause so the user sees their trace + bubble before the modal
-        setTimeout(openCommunity, 4500);
+        // Show the THANK YOU modal — this is the natural end of the
+        // interaction. The map is already updated (filter chip active,
+        // unlocked traces visible, bottom panel now showing JOIN).
+        const flavourLabel = FLAVOURS[activeFlavour]?.label || '';
+        setTimeout(() => {
+          showModal({
+            icon: flavourIconHTML(activeFlavour),
+            title: I18N[lang].mThanksTitle,
+            body:  I18N[lang].mThanksBody.replace('{flavour}', flavourLabel),
+            primary: I18N[lang].mOkay,
+            onPrimary: () => {
+              requestAnimationFrame(() => {
+                centerOnUser();
+                const mine = tracesLayer.querySelector(`.trace-pin[data-id="${t.id}"]`);
+                if (mine) requestAnimationFrame(() => openBubble(t, mine));
+              });
+            },
+          });
+        }, 600);
       });
 
       /* ============================================================
@@ -2255,44 +2717,16 @@
 
       document.getElementById('map-back').addEventListener('click', () => {
         haptic([30]);
-        restart();
+        backToAR();
+      });
+      document.getElementById('join-btn').addEventListener('click', () => {
+        haptic([40, 30, 80]);
+        sfx('success');
+        setTimeout(() => {
+          window.location.href = 'https://www.cerveceriadezarra.es/';
+        }, 200);
       });
 
-      /* ============================================================
-         MAP ZOOM
-         ============================================================ */
-      let mapZoom = 1;
-      const MAP_ZOOM_MIN = 1;
-      const MAP_ZOOM_MAX = 4;
-      function applyMapZoom(focusXPct, focusYPct) {
-        const wrap = document.getElementById('map-wrap');
-        const stage = document.getElementById('map-stage');
-        if (!wrap || !stage) return;
-        // Compute the natural (1x) size based on wrap height
-        const baseH = wrap.clientHeight;
-        const baseW = baseH * 1.75;
-        const targetW = Math.max(wrap.clientWidth, baseW * mapZoom);
-        const targetH = baseH * mapZoom;
-        stage.style.width = targetW + 'px';
-        stage.style.height = targetH + 'px';
-        stage.style.aspectRatio = 'auto';
-        requestAnimationFrame(() => {
-          const fx = (focusXPct != null ? focusXPct : (myCoord ? myCoord.x : 50)) / 100;
-          const fy = (focusYPct != null ? focusYPct : (myCoord ? myCoord.y : 50)) / 100;
-          wrap.scrollLeft = Math.max(0, Math.min(targetW - wrap.clientWidth, fx * targetW - wrap.clientWidth / 2));
-          wrap.scrollTop  = Math.max(0, Math.min(targetH - wrap.clientHeight, fy * targetH - wrap.clientHeight / 2));
-        });
-      }
-      document.getElementById('zoom-in').addEventListener('click', () => {
-        haptic([15]);
-        mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + 0.5);
-        applyMapZoom();
-      });
-      document.getElementById('zoom-out').addEventListener('click', () => {
-        haptic([15]);
-        mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - 0.5);
-        applyMapZoom();
-      });
 
       /* ============================================================
          RESTART
@@ -2301,6 +2735,14 @@
         closeBubble();
         traceInput.value = '';
         traceSend.disabled = true;
+        // Clear flavour state so the prototype demo starts fresh
+        activeFlavour = null;
+        activeFilter  = null;
+        unlockedFlavours = new Set();
+        submittedTraces  = {};
+        localStorage.removeItem('zarra:flavours');
+        localStorage.removeItem('zarra:traces');
+        body.dataset.submitted = '0';
         goTo('intro');
         stopMindAR();
       }
@@ -2312,6 +2754,17 @@
          ============================================================ */
       if (location.search.includes('debug')) {
         body.classList.add('is-debug');
+        // Always start completely fresh in debug mode — wipe all persisted state
+        localStorage.removeItem('zarra:flavours');
+        localStorage.removeItem('zarra:traces');
+        localStorage.removeItem('zarra:profile');
+        activeFlavour    = null;
+        activeFilter     = null;
+        unlockedFlavours = new Set();
+        submittedTraces  = {};
+        hasProfile       = false;
+        myCoord          = null;
+        body.dataset.submitted = '0';
         document.addEventListener('keydown', (e) => {
           const i = STATES.indexOf(state);
           if (e.key === 'ArrowRight' || e.key === ' ') {
@@ -2321,7 +2774,11 @@
           }
         });
         document.getElementById('dev-skip').addEventListener('click', () => {
-          if (state === 'scan') { spawnSwarm(); goTo('bee'); }
+          if (state === 'scan') {
+            activeFlavour = pickedFlavour;
+            spawnSwarm();
+            goTo('bee');
+          }
         });
       }
 
