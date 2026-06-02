@@ -257,8 +257,31 @@
       #screen-permission {
         z-index: 51;
         background: #1a1208;
-        justify-content: center;
+        justify-content: flex-start;
         padding: 0;
+      }
+      .perm-bg {
+        position: absolute;
+        inset: -8% -6%;
+        background-image: url('./assets/village-bg.png');
+        background-size: cover;
+        background-position: center top;
+        filter: brightness(0.85) saturate(1.05);
+        z-index: 0;
+        pointer-events: none;
+      }
+      .perm-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(20, 14, 8, 0.55) 0%,
+          rgba(20, 14, 8, 0.18) 32%,
+          rgba(20, 14, 8, 0.10) 55%,
+          rgba(20, 14, 8, 0.55) 82%,
+          rgba(20, 14, 8, 0.92) 100%
+        );
       }
       .perm-back {
         position: absolute;
@@ -270,15 +293,35 @@
         line-height: 1;
         padding: 0.6rem;
       }
+      .perm-inner {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: max(env(safe-area-inset-top, 0px), 1.2rem)
+                 1.6rem
+                 max(env(safe-area-inset-bottom, 0px), 1.8rem);
+      }
+      .perm-title {
+        margin: 14vh 0 1.4rem;
+        font-family: var(--font-display);
+        font-size: 1.6rem;
+        letter-spacing: 0.08em;
+        color: #fdf6e3;
+        text-align: center;
+        text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      }
       .perm-card {
         position: relative;
         z-index: 1;
+        width: min(86vw, 360px);
         background: var(--orange);
         color: #fff;
         border-radius: 28px;
-        padding: 2rem 1.8rem 1.6rem;
-        width: min(84vw, 360px);
-        text-align: center;
+        padding: 1.8rem 1.6rem;
         box-shadow: 0 24px 60px rgba(0,0,0,0.4);
         transform: translateY(20px) scale(0.96);
         opacity: 0;
@@ -289,35 +332,45 @@
         transform: translateY(0) scale(1);
         opacity: 1;
       }
-      .perm-icon {
-        margin: 0.4rem auto 1.1rem;
-        width: 56px;
-        height: 56px;
+      .perm-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        text-align: left;
+      }
+      .perm-row + .perm-row { margin-top: 1.4rem; }
+      .perm-row-icon {
+        flex-shrink: 0;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #fff;
         display: grid;
         place-items: center;
       }
-      .perm-icon svg { width: 56px; height: 56px; stroke: #fff; }
-      .perm-title {
-        margin: 0 0 1rem;
-        font-family: var(--font-display);
-        font-size: 1.6rem;
-        letter-spacing: 0.08em;
+      .perm-row-icon svg {
+        width: 24px;
+        height: 24px;
+        stroke: var(--orange);
+        fill: none;
       }
-      .perm-body {
-        margin: 0 0 1.6rem;
-        font-style: italic;
-        font-weight: 600;
-        line-height: 1.45;
+      .perm-row-text {
+        margin: 0;
         font-size: 1rem;
+        font-weight: 600;
+        line-height: 1.35;
+        color: #fff;
       }
+      .perm-row-text em { font-style: italic; }
+      .perm-spacer { flex: 1; }
       .perm-actions {
         display: flex;
         gap: 0.7rem;
         justify-content: center;
+        width: min(86vw, 360px);
       }
       .perm-btn {
         flex: 1;
-        max-width: 160px;
         padding: 0.9rem 1.2rem;
         border-radius: 999px;
         font-weight: 600;
@@ -1238,18 +1291,42 @@
          STATE 2 · CAMERA PERMISSION
          ============================================================ -->
     <section id="screen-permission" class="screen">
+      <div class="perm-bg"></div>
       <button class="perm-back" id="perm-back" aria-label="Back">‹</button>
-      <div class="perm-card">
-        <div class="perm-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 8a2 2 0 0 1 2-2h2.2l1.3-2h6.9l1.3 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/>
-            <circle cx="12" cy="13" r="3.6"/>
-          </svg>
+      <div class="perm-inner">
+        <h2 class="perm-title" data-i18n="permTitle">BEFORE WE BEGIN…</h2>
+        <div class="perm-card">
+          <div class="perm-row">
+            <span class="perm-row-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 8a2 2 0 0 1 2-2h2.2l1.3-2h6.9l1.3 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/>
+                <circle cx="12" cy="13" r="3.6"/>
+              </svg>
+            </span>
+            <p class="perm-row-text" data-i18n="permRow1">To bring the beer's story to life, we ask for camera access</p>
+          </div>
+          <div class="perm-row">
+            <span class="perm-row-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/>
+                <circle cx="12" cy="10" r="2.5"/>
+              </svg>
+            </span>
+            <p class="perm-row-text" data-i18n="permRow2">For you to later leave a trace on the shared map, we also ask for your <em>approximate</em> location</p>
+          </div>
+          <div class="perm-row">
+            <span class="perm-row-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12a8 8 0 1 1 2.3 5.6"/>
+                <polyline points="4 20 4 14 10 14"/>
+              </svg>
+            </span>
+            <p class="perm-row-text" data-i18n="permRow3">If you prefer not to allow camera access, you can still continue through a 360° version of the experience</p>
+          </div>
         </div>
-        <h2 class="perm-title" data-i18n="permTitle">CAMERA ACCESS</h2>
-        <p class="perm-body" data-i18n="permBody">zarra.cervesa wants to use your camera<br/>to bring something to life</p>
+        <div class="perm-spacer"></div>
         <div class="perm-actions">
-          <button class="perm-btn perm-btn--ghost" id="perm-deny" data-i18n="permDeny">Not Now</button>
+          <button class="perm-btn perm-btn--ghost" id="perm-deny" data-i18n="permDeny">360° version</button>
           <button class="perm-btn perm-btn--solid" id="perm-allow" data-i18n="permAllow">Allow</button>
         </div>
       </div>
@@ -1583,9 +1660,11 @@
           tagline: 'Beer, Land and People',
           desc: 'Based on the Spanish tradition of La Sobremesa – time spent chatting and connecting after a meal, this time your beer!',
           cta: 'Start Experience',
-          permTitle: 'CAMERA & LOCATION',
-          permBody: 'zarra.cervesa would like to use your <b>camera</b> to bring something to life and your <b>location</b> to place your trace on the map.<br/><br/><small>We also store a few cookies to remember your trace between visits.</small>',
-          permDeny: 'Deny',
+          permTitle: 'BEFORE WE BEGIN…',
+          permRow1: "To bring the beer's story to life, we ask for camera access",
+          permRow2: 'For you to later leave a trace on the shared map, we also ask for your <em>approximate</em> location',
+          permRow3: 'If you prefer not to allow camera access, you can still continue through a 360° version of the experience',
+          permDeny: '360° version',
           permAllow: 'Allow',
           scanFind: 'Find the bee',
           scanFrame: 'Frame it within',
@@ -1623,9 +1702,11 @@
           tagline: 'Cerveza, Tierra y Gente',
           desc: 'Basado en la tradición española de La Sobremesa – tiempo dedicado a charlar y conectar después de una comida, ¡esta vez con tu cerveza!',
           cta: 'Comenzar Experiencia',
-          permTitle: 'CÁMARA Y UBICACIÓN',
-          permBody: 'zarra.cervesa quiere usar tu <b>cámara</b> para dar vida a algo y tu <b>ubicación</b> para colocar tu huella en el mapa.<br/><br/><small>También usamos algunas cookies para recordar tu huella entre visitas.</small>',
-          permDeny: 'Rechazar',
+          permTitle: 'ANTES DE EMPEZAR…',
+          permRow1: 'Para dar vida a la historia de la cerveza, te pedimos acceso a la cámara',
+          permRow2: 'Para que luego dejes tu huella en el mapa compartido, también te pedimos tu ubicación <em>aproximada</em>',
+          permRow3: 'Si prefieres no permitir el acceso a la cámara, aún puedes continuar con una versión 360° de la experiencia',
+          permDeny: 'Versión 360°',
           permAllow: 'Permitir',
           scanFind: 'Encuentra la abeja',
           scanFrame: 'Encuádralo dentro',
