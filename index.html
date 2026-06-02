@@ -2700,6 +2700,12 @@
         submittedTraces  = {};
         localStorage.removeItem('zarra:flavours');
         localStorage.removeItem('zarra:traces');
+        // Clear the profile too so the next run is a true first-time
+        // experience (the "Tell us about yourself" screen reappears).
+        localStorage.removeItem('zarra:profile');
+        hasProfile = false;
+        myCoord = null;
+        nameInput.value = '';
         body.dataset.submitted = '0';
         goTo('intro');
         stopMindAR();
