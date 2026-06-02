@@ -28,19 +28,13 @@
          DESIGN TOKENS
          ========================================================== */
       :root {
-        --orange:     #E48043;
-        --orange-soft:#F0A06B;
-        --magenta:    #C8438A;
-        --magenta-dk: #A8326F;
-        --cream:      #FBF1DC;
-        --paper:      #FFFCEF;
-        --ink:        #2A1A0E;
-        --ink-soft:   rgba(42, 26, 14, 0.6);
-        --ink-faint:  rgba(42, 26, 14, 0.35);
-        --map-bg:     #B7D6D2;   /* shallow-sea blue-green */
-        --map-land:   #D7B98C;   /* warm sand */
-        --map-land-2: #C9A878;
-        --bg:         #1a1208;
+        --orange:    #F18340;
+        --magenta:   #D92D54;
+        --cream:     #FCFAe4;
+        --ink:       #2A1A0E;
+        --ink-soft:  rgba(42, 26, 14, 0.6);
+        --ink-faint: rgba(42, 26, 14, 0.35);
+        --map-bg:    #268F99;
 
         --font-display: 'Megrim', cursive;
         --font-body:    'Nunito', system-ui, sans-serif;
@@ -158,7 +152,7 @@
       .intro-mist {
         position: absolute;
         inset: -4%;
-        background: radial-gradient(ellipse at 50% 90%, rgba(228,128,67,0.22) 0%, rgba(228,128,67,0) 60%),
+        background: radial-gradient(ellipse at 50% 90%, rgba(241,131,64,0.22) 0%, rgba(241,131,64,0) 60%),
                     radial-gradient(ellipse at 50% 5%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 50%);
         z-index: 0;
         pointer-events: none;
@@ -248,13 +242,13 @@
         font-size: 1.25rem;
         padding: 1.1rem 1.4rem;
         border-radius: 999px;
-        box-shadow: 0 10px 28px rgba(228, 128, 67, 0.45);
+        box-shadow: 0 10px 28px rgba(241, 131, 64, 0.45);
         transition: transform var(--t-fast) var(--ease),
                     box-shadow var(--t-fast) var(--ease);
       }
       .intro-cta:active {
         transform: translateY(1px) scale(0.98);
-        box-shadow: 0 4px 14px rgba(228, 128, 67, 0.32);
+        box-shadow: 0 4px 14px rgba(241, 131, 64, 0.32);
       }
 
       /* ==========================================================
@@ -332,7 +326,7 @@
       }
       .perm-btn:active { transform: scale(0.97); }
       .perm-btn--ghost { background: #fff; color: var(--ink); }
-      .perm-btn--solid { background: var(--magenta); color: #fff; box-shadow: 0 6px 18px rgba(200,67,138,0.35); }
+      .perm-btn--solid { background: var(--magenta); color: #fff; box-shadow: 0 6px 18px rgba(217,45,84,0.35); }
 
       /* ==========================================================
          STATE 3 · SCANNING
@@ -490,7 +484,7 @@
         font-size: 1rem;
         padding: 0.95rem 2.2rem;
         border-radius: 999px;
-        box-shadow: 0 8px 22px rgba(228,128,67,0.45);
+        box-shadow: 0 8px 22px rgba(241,131,64,0.45);
         opacity: 0;
         transform: translateY(20px);
         transition: opacity 0.5s ease 0.5s, transform 0.5s ease 0.5s;
@@ -514,15 +508,13 @@
         inset: 0;
         z-index: 0;
         pointer-events: none;
-        background-color: #f5f0e8;
+        background-color: #FCFAe4;
         background-image: url('./assets/trace_bg.jpeg?v=2');
         background-repeat: no-repeat;
         background-position: center center;
         background-size: cover;
       }
       /* Halftone-style bees at the top, mimicking the figma decoration */
-      /* Bee decorations hidden — background image already has them */
-      .profile-bee { display: none; }
       .profile-back {
         position: absolute;
         top: max(env(safe-area-inset-top, 0px), 1rem);
@@ -603,7 +595,7 @@
         font-size: 1rem;
         padding: 0.9rem 2.4rem;
         border-radius: 999px;
-        box-shadow: 0 8px 22px rgba(200,67,138,0.4);
+        box-shadow: 0 8px 22px rgba(217,45,84,0.4);
         position: relative;
         z-index: 1;
         transition: transform var(--t-fast) var(--ease);
@@ -685,42 +677,12 @@
         transform: scale(0.45);
       }
       .here-pin::after {
-        background: rgba(200,67,138,0.4);
+        background: rgba(217,45,84,0.4);
         animation: here-pulse 1.8s ease-out infinite;
       }
       @keyframes here-pulse {
         0%   { transform: scale(0.5); opacity: 0.6; }
         100% { transform: scale(1.8); opacity: 0;   }
-      }
-
-      /* Country label hints (small) */
-      .map-label {
-        position: absolute;
-        font-size: 0.65rem;
-        letter-spacing: 0.16em;
-        font-weight: 700;
-        color: rgba(40,28,14,0.55);
-        text-transform: uppercase;
-        pointer-events: none;
-        white-space: nowrap;
-      }
-
-      /* Bee markers that wander */
-      .bee-mark {
-        position: absolute;
-        font-size: 1.25rem;
-        line-height: 1;
-        transform: translate(-50%, -50%);
-        pointer-events: none;
-        filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
-        animation: bee-wander 14s ease-in-out infinite;
-      }
-      .bee-mark.flip { transform: translate(-50%, -50%) scaleX(-1); }
-      @keyframes bee-wander {
-        0%, 100% { transform: translate(-50%, -50%) translate(0px, 0px); }
-        25%      { transform: translate(-50%, -50%) translate(18px, -10px); }
-        50%      { transform: translate(-50%, -50%) translate(8px, 12px); }
-        75%      { transform: translate(-50%, -50%) translate(-14px, -6px); }
       }
 
       /* Trace pin (cherry / fruit icon) */
@@ -984,7 +946,7 @@
       .community-card {
         position: relative;
         width: min(86vw, 360px);
-        background: var(--paper);
+        background: var(--cream);
         border-radius: 26px;
         padding: 2.4rem 1.6rem 1.6rem;
         text-align: center;
@@ -1007,7 +969,7 @@
         display: grid;
         place-items: center;
         font-size: 1.6rem;
-        box-shadow: 0 8px 18px rgba(228,128,67,0.45);
+        box-shadow: 0 8px 18px rgba(241,131,64,0.45);
       }
       .community-close {
         position: absolute;
@@ -1049,7 +1011,7 @@
       .community-btn--solid {
         background: var(--magenta);
         color: #fff;
-        box-shadow: 0 8px 18px rgba(200,67,138,0.4);
+        box-shadow: 0 8px 18px rgba(217,45,84,0.4);
       }
       .community-btn--ghost {
         background: transparent;
@@ -1149,7 +1111,7 @@
         background: var(--orange);
         border-color: var(--orange);
         color: #fff;
-        box-shadow: 0 6px 16px rgba(228,128,67,0.4);
+        box-shadow: 0 6px 16px rgba(241,131,64,0.4);
       }
 
       /* ==========================================================
@@ -1160,7 +1122,7 @@
       .flavor-chip.is-active {
         background: var(--magenta);
         color: #fff;
-        box-shadow: 0 6px 16px rgba(200,67,138,0.4);
+        box-shadow: 0 6px 16px rgba(217,45,84,0.4);
       }
       .flavor-chip.is-active .pip { background: rgba(255,255,255,0.25); }
 
@@ -1196,7 +1158,7 @@
         font-size: 1rem;
         padding: 0.85rem 2rem;
         border-radius: 999px;
-        box-shadow: 0 6px 16px rgba(200,67,138,0.4);
+        box-shadow: 0 6px 16px rgba(217,45,84,0.4);
         transition: transform var(--t-fast) var(--ease);
       }
       .join-btn:active { transform: scale(0.97); }
@@ -1330,8 +1292,6 @@
          ============================================================ -->
     <section id="screen-profile" class="screen">
       <div class="profile-bg"></div>
-      <span class="profile-bee b1" aria-hidden="true">🐝</span>
-      <span class="profile-bee b2" aria-hidden="true">🐝</span>
       <button class="profile-back" id="profile-back" aria-label="Back">‹</button>
 
       <div class="profile-card">
@@ -1811,8 +1771,6 @@
         osc.start(t0);
         osc.stop(t0 + dur + 0.03);
       }
-      function startBuzz() { /* no-op */ }
-      function stopBuzz()  { /* no-op */ }
       function sfx(name) {
         switch (name) {
           case 'click':   return tone({ freq: 620, dur: 0.10, type: 'sine', gain: 0.08, attack: 0.012 });
