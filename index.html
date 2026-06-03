@@ -1368,25 +1368,6 @@
       <div class="community-card" id="ux-card"></div>
     </div>
 
-    <!-- ============================================================
-         JOIN THE COMMUNITY  (overlay after first trace)
-         ============================================================ -->
-    <div class="community-overlay" id="community-overlay" hidden>
-      <div class="community-card">
-        <button class="community-close" id="community-close" aria-label="Close">✕</button>
-        <div class="community-badge">🐝</div>
-        <h3 class="community-title" data-i18n="commTitle">JOIN THE COMMUNITY</h3>
-        <p class="community-body" data-i18n="commBody">
-          Be the first to taste new flavors, hear stories from the brewery,
-          and meet other people who left a trace.
-        </p>
-        <div class="community-actions">
-          <button class="community-btn community-btn--solid" id="community-join" data-i18n="commJoin">Join</button>
-          <button class="community-btn community-btn--ghost" id="community-later" data-i18n="commLater">Maybe later</button>
-        </div>
-      </div>
-    </div>
-
     <div class="toast" id="toast" data-i18n="toast">Your trace is on the map ✦</div>
     <button class="restart-btn" id="restart-btn" title="Restart">↺</button>
 
@@ -1553,7 +1534,6 @@
           commTitle: 'JOIN THE COMMUNITY',
           commBody: 'Be the first to taste new flavors, hear stories from the brewery, and meet other people who left a trace.',
           commJoin: 'Join',
-          commLater: 'Maybe later',
           commLinkHint: '↗ Takes you to cerveceriadezarra.es',
           mNotSoFastTitle: 'NOT SO FAST…',
           mNotSoFastBody:  'Leave your own trace to find out what others had to say',
@@ -1561,6 +1541,7 @@
           mThanksBody:     'Thank you for taking part in La Sobremesa. Your story is now part of the {flavour} community — cheers!',
           mScanNewTitle:   'SCAN A NEW BEER',
           mScanNewBody:    'To unlock new flavoured traces',
+          mScanAnother:    'Scan another!',
           mOkay:           'Got it',
         },
         es: {
@@ -1589,7 +1570,6 @@
           commTitle: 'ÚNETE A LA COMUNIDAD',
           commBody: 'Sé el primero en probar nuevos sabores, escuchar historias de la cervecería y conocer a otras personas que dejaron una huella.',
           commJoin: 'Unirme',
-          commLater: 'Quizás más tarde',
           commLinkHint: '↗ Te lleva a cerveceriadezarra.es',
           mNotSoFastTitle: 'ESPERA…',
           mNotSoFastBody:  'Deja tu huella para descubrir lo que otros dijeron',
@@ -1597,6 +1577,7 @@
           mThanksBody:     'Gracias por participar en La Sobremesa. Tu historia ya forma parte de la comunidad {flavour} — ¡salud!',
           mScanNewTitle:   'ESCANEA UNA NUEVA CERVEZA',
           mScanNewBody:    'Para desbloquear nuevas huellas de sabor',
+          mScanAnother:    '¡Escanea otra!',
           mOkay:           'Entendido',
         },
       };
@@ -2305,7 +2286,8 @@
                 showModal({
                   title: I18N[lang].mScanNewTitle,
                   body:  I18N[lang].mScanNewBody,
-                  primary: I18N[lang].mOkay,
+                  primary: I18N[lang].mScanAnother,
+                  onPrimary: backToAR,
                 });
               }
               return;
@@ -2371,7 +2353,8 @@
               showModal({
                 title: I18N[lang].mScanNewTitle,
                 body:  I18N[lang].mScanNewBody,
-                primary: I18N[lang].mOkay,
+                primary: I18N[lang].mScanAnother,
+                onPrimary: backToAR,
               });
               return;
             }
@@ -2574,25 +2557,6 @@
             },
           });
         }, 600);
-      });
-
-      /* ============================================================
-         COMMUNITY MODAL
-         ============================================================ */
-      const communityOverlay = document.getElementById('community-overlay');
-      function closeCommunity() {
-        communityOverlay.classList.remove('is-on');
-        setTimeout(() => { communityOverlay.hidden = true; }, 360);
-      }
-      document.getElementById('community-close').addEventListener('click', closeCommunity);
-      document.getElementById('community-later').addEventListener('click', closeCommunity);
-      document.getElementById('community-join').addEventListener('click', () => {
-        haptic([40, 30, 80]);
-        sfx('success');
-        // Brief pause so the haptic/sfx land before navigation
-        setTimeout(() => {
-          window.location.href = 'https://www.cerveceriadezarra.es/';
-        }, 200);
       });
 
       document.getElementById('map-back').addEventListener('click', () => {
