@@ -520,40 +520,6 @@
         transition: opacity 0.4s ease;
       }
       .bee-hint.is-on { opacity: 1; }
-      .bee-msg {
-        pointer-events: none;
-        margin-bottom: 1rem;
-        color: #fdf6e3;
-        font-family: var(--font-display);
-        font-size: 1.25rem;
-        letter-spacing: 0.12em;
-        text-shadow: 0 2px 12px rgba(0,0,0,0.7);
-        opacity: 0;
-        transform: translateY(8px);
-        transition: opacity 0.6s ease, transform 0.6s ease;
-      }
-      #screen-bee.is-active .bee-msg {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      .bee-cta {
-        pointer-events: auto;
-        background: var(--orange);
-        color: #fff;
-        font-weight: 600;
-        font-size: 1rem;
-        padding: 0.95rem 2.2rem;
-        border-radius: 999px;
-        box-shadow: 0 8px 22px rgba(241,131,64,0.45);
-        opacity: 0;
-        transform: translateY(20px);
-        transition: opacity 0.5s ease 0.5s, transform 0.5s ease 0.5s;
-      }
-      #screen-bee.is-active .bee-cta {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      .bee-cta:active { transform: scale(0.97); }
 
       /* ==========================================================
          STATE 5 · PROFILE
@@ -769,8 +735,6 @@
         opacity: 0.55;
         filter: grayscale(0.4);
       }
-
-      /* Map zoom controls */
 
       /* Trace bubble (quote callout) */
       .trace-bubble {
@@ -1122,59 +1086,6 @@
       body[data-state="map"] .restart-btn { display: grid; }
 
       /* ==========================================================
-         FLAVOUR PICKER (scan screen — demo control)
-         ========================================================== */
-      .scan-picker {
-        position: fixed;
-        left: 0; right: 0;
-        bottom: calc(env(safe-area-inset-bottom, 0px) + 1.4rem);
-        z-index: 12;
-        display: flex;
-        justify-content: center;
-        gap: 0.55rem;
-        padding: 0 1rem;
-        pointer-events: auto;
-      }
-      /* Flavour is now detected via NFC — manual picker is hidden. */
-      .scan-picker { display: none !important; }
-      .scan-picker .sp-label {
-        position: absolute;
-        top: -1.4rem;
-        left: 50%;
-        transform: translateX(-50%);
-        font-size: 0.65rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: rgba(253,246,227,0.55);
-        white-space: nowrap;
-      }
-      .scan-picker button {
-        flex: 1;
-        max-width: 110px;
-        padding: 0.6rem 0.4rem;
-        border-radius: 999px;
-        background: rgba(0,0,0,0.45);
-        border: 1px solid rgba(253,246,227,0.25);
-        color: #fdf6e3;
-        font-size: 0.8rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.3rem;
-        backdrop-filter: blur(6px);
-        transition: transform var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
-      }
-      .scan-picker button:active { transform: scale(0.95); }
-      .scan-picker button.is-selected {
-        background: var(--orange);
-        border-color: var(--orange);
-        color: #fff;
-        box-shadow: 0 6px 16px rgba(241,131,64,0.4);
-      }
-
-      /* ==========================================================
          GENERIC UX MODAL (NOT SO FAST · THANK YOU · SCAN A NEW BEER)
          Reuses .community-overlay styles, just driven dynamically.
          ========================================================== */
@@ -1353,22 +1264,10 @@
       <button class="dev-skip" id="dev-skip">Skip detect →</button>
     </section>
 
-    <!-- Demo flavour picker — simulates scanning a specific beer.
-         Sets activeFlavour at scan time so the rest of the UX flow works. -->
-    <div class="scan-picker" id="scan-picker">
-      <span class="sp-label" data-i18n="pickerHint">I'm scanning…</span>
-      <button data-flavour="orange">🍊 ORANGE</button>
-      <button data-flavour="honey">🍯 HONEY</button>
-      <button data-flavour="cherry">🍒 CHERRY</button>
-      <button data-flavour="lemon">🍋 LEMON</button>
-    </div>
-
     <!-- ============================================================
          STATE 4 · BEE (AR overlay UI)
          ============================================================ -->
-    <section id="screen-bee" class="screen">
-      <button class="bee-cta" id="bee-cta" data-i18n="beeCta" hidden style="display:none">Continue</button>
-    </section>
+    <section id="screen-bee" class="screen"></section>
     <div class="bee-hint" id="bee-hint" data-i18n="beeMsg">Catch the golden bee…</div>
 
     <!-- ============================================================
@@ -1528,40 +1427,6 @@
         },
       });
 
-      /* emoji-sprite: flat 2D plane with an emoji drawn on a canvas,
-         always facing the camera (billboard), renders above the AR bg. */
-      AFRAME.registerComponent('emoji-sprite', {
-        schema: {
-          emoji: { type: 'string', default: '🐝' },
-          size:  { type: 'number', default: 0.12 },
-          gold:  { type: 'boolean', default: false },
-        },
-        init() {
-          const d = this.data;
-          const c = document.createElement('canvas');
-          c.width = 128; c.height = 128;
-          const ctx = c.getContext('2d');
-          if (d.gold) { ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 28; }
-          ctx.font = '80px serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(d.emoji, 64, 72);
-          const tex = new THREE.CanvasTexture(c);
-          const mat = new THREE.MeshBasicMaterial({
-            map: tex, transparent: true, depthTest: false, side: THREE.DoubleSide,
-          });
-          const geo = new THREE.PlaneGeometry(d.size, d.size);
-          const mesh = new THREE.Mesh(geo, mat);
-          mesh.renderOrder = 999;
-          this.el.setObject3D('mesh', mesh);
-        },
-        tick() {
-          // Billboard — always face the active camera
-          const cam = this.el.sceneEl.camera;
-          if (cam) this.el.object3D.quaternion.copy(cam.quaternion);
-        },
-      });
-
       /* gold-tint: turns every mesh gold AND disables depth-test so it
          always renders above the MindAR camera background plane.         */
       AFRAME.registerComponent('gold-tint', {
@@ -1676,14 +1541,11 @@
           scanFind: 'Find the bee',
           scanFrame: 'Frame it within',
           beeMsg: 'Tap the golden bee.',
-          beeCta: 'Continue',
           xrReady: 'Spatial mode',
           profTitle: 'TELL US ABOUT<br/>YOURSELF',
           profCountry: 'Select your country',
           profName: 'Your name',
           profContinue: 'Continue',
-          flavorOrange: 'ALBA · Orange Wheat',
-          locked: 'Locked',
           traceTitle: 'LEAVE YOUR TRACE…',
           tracePlaceholder: 'type here …',
           traceSend: 'Send',
@@ -1693,15 +1555,12 @@
           commJoin: 'Join',
           commLater: 'Maybe later',
           commLinkHint: '↗ Takes you to cerveceriadezarra.es',
-          pickerHint: "I'm scanning…",
-          scanAgain: 'Scan another beer',
           mNotSoFastTitle: 'NOT SO FAST…',
           mNotSoFastBody:  'Leave your own trace to find out what others had to say',
           mThanksTitle:    'THANK YOU FOR LEAVING YOUR TRACE',
           mThanksBody:     'Thank you for taking part in La Sobremesa. Your story is now part of the {flavour} community — cheers!',
           mScanNewTitle:   'SCAN A NEW BEER',
           mScanNewBody:    'To unlock new flavoured traces',
-          mScanNewCta:     'Back to AR',
           mOkay:           'Got it',
         },
         es: {
@@ -1718,14 +1577,11 @@
           scanFind: 'Encuentra la abeja',
           scanFrame: 'Encuádralo dentro',
           beeMsg: 'Toca la abeja dorada.',
-          beeCta: 'Continuar',
           xrReady: 'Modo espacial',
           profTitle: 'CUÉNTANOS<br/>SOBRE TI',
           profCountry: 'Selecciona tu país',
           profName: 'Tu nombre',
           profContinue: 'Continuar',
-          flavorOrange: 'ALBA · Trigo Naranja',
-          locked: 'Bloqueado',
           traceTitle: 'DEJA TU HUELLA…',
           tracePlaceholder: 'escribe aquí…',
           traceSend: 'Enviar',
@@ -1735,15 +1591,12 @@
           commJoin: 'Unirme',
           commLater: 'Quizás más tarde',
           commLinkHint: '↗ Te lleva a cerveceriadezarra.es',
-          pickerHint: 'Estoy escaneando…',
-          scanAgain: 'Escanear otra cerveza',
           mNotSoFastTitle: 'ESPERA…',
           mNotSoFastBody:  'Deja tu huella para descubrir lo que otros dijeron',
           mThanksTitle:    'GRACIAS POR DEJAR TU HUELLA',
           mThanksBody:     'Gracias por participar en La Sobremesa. Tu historia ya forma parte de la comunidad {flavour} — ¡salud!',
           mScanNewTitle:   'ESCANEA UNA NUEVA CERVEZA',
           mScanNewBody:    'Para desbloquear nuevas huellas de sabor',
-          mScanNewCta:     'Volver a AR',
           mOkay:           'Entendido',
         },
       };
@@ -1807,20 +1660,32 @@
         const ny = ((e.beta || 0) - 45) / 45; // center around 45° (natural hold angle)
         setParallaxTarget(nx, ny);
       }
+      let gyroOn = false;
+      function attachOrientation() {
+        if (gyroOn) return;
+        gyroOn = true;
+        window.addEventListener('deviceorientation', onOrientation);
+      }
       function enableGyro() {
+        if (gyroOn) return;
         const DO = window.DeviceOrientationEvent;
         if (DO && typeof DO.requestPermission === 'function') {
+          // iOS 13+: requestPermission() is rejected unless it runs inside a
+          // user gesture, so a load-time call is harmless but won't prompt.
           DO.requestPermission()
-            .then((res) => {
-              if (res === 'granted') window.addEventListener('deviceorientation', onOrientation);
-            })
+            .then((res) => { if (res === 'granted') attachOrientation(); })
             .catch(() => {});
         } else if (DO) {
-          window.addEventListener('deviceorientation', onOrientation);
+          attachOrientation();
         }
       }
-      // Silent attempt at load (Android / non-iOS), retry on first user gesture
+      // Android / non-iOS: attaches immediately on load, so the intro parallax
+      // works from launch with no prompt. iOS can't prompt without a gesture,
+      // so we also fire on the very first touch anywhere — the earliest moment
+      // the OS allows — so the tilt parallax starts as soon as physically
+      // possible while still on the intro screen.
       enableGyro();
+      window.addEventListener('pointerdown', enableGyro, { once: true });
 
       /* ============================================================
          SFX — WebAudio-generated tones (no asset files needed)
@@ -1904,7 +1769,7 @@
          ============================================================ */
       document.getElementById('start-btn').addEventListener('click', () => {
         haptic([60]);
-        enableGyro();        // user gesture → satisfies iOS permission prompt
+        enableGyro();        // fallback: ensures gyro prompt fired (no-op if already on)
         ensureAudio();
         goTo('permission');
       });
@@ -1944,27 +1809,9 @@
         else scene.addEventListener('loaded', start, { once: true });
       });
 
-      /* ---------- Scan-screen flavour picker (demo control) ---------
-         The image target is a single can, so for demo purposes the user
-         picks which flavour they are "scanning". This sets activeFlavour
-         at the moment of detection so the rest of the flow is real. */
-      const scanPicker = document.getElementById('scan-picker');
-      // NFC-driven flow: only honey beer exists for now, so the scan
-      // always commits the honey flavour. Manual picker UI is hidden.
+      /* NFC-driven flow: only honey beer exists for now, so every scan
+         commits the honey flavour. (The manual demo picker UI was removed.) */
       let pickedFlavour = 'honey';
-      function updatePickerUI() {
-        scanPicker.querySelectorAll('button').forEach((b) => {
-          b.classList.toggle('is-selected', b.dataset.flavour === pickedFlavour);
-        });
-      }
-      scanPicker.querySelectorAll('button').forEach((b) => {
-        b.addEventListener('click', () => {
-          pickedFlavour = b.dataset.flavour;
-          updatePickerUI();
-          haptic([15]);
-        });
-      });
-      updatePickerUI();
 
       /* ============================================================
          SCAN → BEE (target detection)
@@ -2053,7 +1900,6 @@
         swarmSpawned    = false;
         swarmAnchored   = false;
         goldBeeEntities = [];
-        document.getElementById('bee-cta').hidden = true;
         while (beeSwarm.firstChild) beeSwarm.removeChild(beeSwarm.firstChild);
         // Undo the THREE-only reparent so the next session starts in
         // the original target-tracked configuration. We use add() (not
@@ -2191,13 +2037,6 @@
           }
         }
       }, { passive: true });
-
-      document.getElementById('bee-cta').addEventListener('click', async () => {
-        haptic([60]);
-        await stopMindAR();
-        clearSwarm();
-        goTo(hasProfile ? 'map' : 'profile');
-      });
 
       /* ============================================================
          PROFILE
@@ -2741,11 +2580,6 @@
          COMMUNITY MODAL
          ============================================================ */
       const communityOverlay = document.getElementById('community-overlay');
-      function openCommunity() {
-        communityOverlay.hidden = false;
-        requestAnimationFrame(() => communityOverlay.classList.add('is-on'));
-        sfx('success');
-      }
       function closeCommunity() {
         communityOverlay.classList.remove('is-on');
         setTimeout(() => { communityOverlay.hidden = true; }, 360);
