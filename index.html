@@ -462,35 +462,6 @@
       body:not(.is-debug) .dev-skip { display: none; }
 
       /* ==========================================================
-         WEBXR CAPABILITY BADGE
-         ========================================================== */
-      .xr-badge {
-        position: fixed;
-        top: max(env(safe-area-inset-top, 0), 0.9rem);
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 14;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.35rem 0.85rem;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.55);
-        color: #ffd84a;
-        font-size: 0.65rem;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 216, 74, 0.35);
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.4s ease;
-      }
-      .xr-badge.is-on { opacity: 1; }
-      body:not([data-state="bee"]) .xr-badge { opacity: 0; }
-
-      /* ==========================================================
          STATE 4 · BEE (AR overlay UI)
          ========================================================== */
       #screen-bee {
@@ -995,14 +966,6 @@
         font-size: 1.6rem;
         box-shadow: 0 8px 18px rgba(241,131,64,0.45);
       }
-      .community-close {
-        position: absolute;
-        top: 10px; right: 12px;
-        font-size: 1rem;
-        color: var(--ink-soft);
-        padding: 0.3rem 0.5rem;
-        line-height: 1;
-      }
       .community-title {
         margin: 0.4rem 0 0.7rem;
         font-family: var(--font-display);
@@ -1168,12 +1131,6 @@
         <a-entity id="bee-swarm"></a-entity>
       </a-entity>
     </a-scene>
-
-    <!-- WebXR capability badge (only shown if device supports immersive-ar) -->
-    <div class="xr-badge" id="xr-badge">
-      <span>✦</span>
-      <span data-i18n="xrReady">Spatial mode</span>
-    </div>
 
     <!-- ============================================================
          STATE 1 · INTRO / MAIN MENU
@@ -1488,7 +1445,6 @@
       const scene = document.querySelector('a-scene');
       const target0  = document.getElementById('target-0');
       const beeSwarm = document.getElementById('bee-swarm');
-      const xrBadge  = document.getElementById('xr-badge');
 
       function haptic(p) { try { navigator.vibrate && navigator.vibrate(p || [10]); } catch(_) {} }
 
@@ -1499,7 +1455,6 @@
         body.dataset.state = next;
         state = next;
         document.getElementById('bee-hint').classList.toggle('is-on', next === 'bee');
-        if (xrBadge) xrBadge.classList.toggle('is-on', next === 'bee' && webxrSupported);
         if (next === 'map') renderMap();
         if (next !== 'bee' && next !== 'scan') clearSwarm();
       }
@@ -1522,7 +1477,6 @@
           scanFind: 'Find the bee',
           scanFrame: 'Frame it within',
           beeMsg: 'Tap the golden bee.',
-          xrReady: 'Spatial mode',
           profTitle: 'TELL US ABOUT<br/>YOURSELF',
           profCountry: 'Select your country',
           profName: 'Your name',
@@ -1558,7 +1512,6 @@
           scanFind: 'Encuentra la abeja',
           scanFrame: 'Encuádralo dentro',
           beeMsg: 'Toca la abeja dorada.',
-          xrReady: 'Modo espacial',
           profTitle: 'CUÉNTANOS<br/>SOBRE TI',
           profCountry: 'Selecciona tu país',
           profName: 'Tu nombre',
@@ -1803,34 +1756,6 @@
       let swarmSpawned   = false;
       let goldBeeEntities = [];   // all gold bees — any hit counts
       let swarmAnchored  = false; // becomes true after the first lock to world space
-
-      /* ----------- WebXR capability probe -----------------------
-       * MindAR drives the active AR session (it owns the camera + render
-       * loop). WebXR ImmersiveAR cannot run concurrently with MindAR, so
-       * we only probe for capability here — the badge surfaces to the
-       * user that their device supports spatial-anchor-class tracking
-       * for future enhancements (hit-test, anchors, light-estimation).
-       * ---------------------------------------------------------- */
-      let webxrSupported = false;
-      let webxrFeatures = { hitTest: false, anchors: false, lightEstimation: false };
-      (async () => {
-        if (!('xr' in navigator)) return;
-        try {
-          const ok = await navigator.xr.isSessionSupported('immersive-ar');
-          webxrSupported = !!ok;
-          if (webxrSupported) {
-            // Optional-features probe — non-blocking
-            const probes = ['hit-test', 'anchors', 'light-estimation'];
-            for (const f of probes) {
-              try {
-                const s = await navigator.xr.isSessionSupported('immersive-ar', { optionalFeatures: [f] });
-                webxrFeatures[f.replace(/-([a-z])/g, (_,c) => c.toUpperCase())] = !!s;
-              } catch(_) {}
-            }
-            console.log('[WebXR] immersive-ar supported. Features:', webxrFeatures);
-          }
-        } catch(_) {}
-      })();
 
       target0.addEventListener('targetFound', () => {
         if (state === 'scan') {
