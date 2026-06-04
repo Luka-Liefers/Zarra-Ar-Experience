@@ -195,6 +195,12 @@
         font-size: 1rem;
         line-height: 1;
       }
+      .intro-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+      }
       .intro-logo {
         width: clamp(88px, 24vw, 120px);
         height: clamp(88px, 24vw, 120px);
@@ -347,6 +353,7 @@
         text-align: left;
       }
       .perm-row + .perm-row { margin-top: 1.4rem; }
+      .perm-rows { list-style: none; margin: 0; }
       .perm-row-icon {
         flex-shrink: 0;
         width: 44px;
@@ -856,8 +863,11 @@
         pointer-events: auto;
         touch-action: pan-x;
         overscroll-behavior-x: contain;
+        list-style: none;
+        margin: 0;
       }
       .flavor-strip::-webkit-scrollbar { display: none; }
+      .flavor-strip > li { flex: 0 0 auto; display: flex; }
       .flavor-chip {
         background: rgba(255,255,255,0.92);
         border-radius: 999px;
@@ -1144,17 +1154,19 @@
           <span id="lang-code">EN</span>
         </button>
 
-        <div class="intro-logo" id="intro-logo" aria-hidden="true">
-          <img src="./assets/logo.png" alt="Cervecería de Zarra" />
-        </div>
+        <header class="intro-header">
+          <div class="intro-logo" id="intro-logo" aria-hidden="true">
+            <img src="./assets/logo.png" alt="Cervecería de Zarra" />
+          </div>
 
-        <h1 class="intro-title" data-i18n="title">CERVECERIA DE ZARRA</h1>
-        <p class="intro-tagline" data-i18n="tagline">Beer, Land and People</p>
-        <p class="intro-desc" data-i18n="desc">
-          Based on the Spanish tradition of La Sobremesa –
-          time spent chatting and connecting after a meal,
-          this time your beer!
-        </p>
+          <h1 class="intro-title" data-i18n="title">CERVECERIA DE ZARRA</h1>
+          <p class="intro-tagline" data-i18n="tagline">Beer, Land and People</p>
+          <p class="intro-desc" data-i18n="desc">
+            Based on the Spanish tradition of La Sobremesa –
+            time spent chatting and connecting after a meal,
+            this time your beer!
+          </p>
+        </header>
 
         <div class="intro-spacer"></div>
 
@@ -1170,8 +1182,8 @@
       <button class="perm-back" id="perm-back" aria-label="Back">‹</button>
       <div class="perm-inner">
         <h2 class="perm-title" data-i18n="permTitle">BEFORE WE BEGIN…</h2>
-        <div class="perm-card">
-          <div class="perm-row">
+        <ul class="perm-card perm-rows">
+          <li class="perm-row">
             <span class="perm-row-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 8a2 2 0 0 1 2-2h2.2l1.3-2h6.9l1.3 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"/>
@@ -1179,8 +1191,8 @@
               </svg>
             </span>
             <p class="perm-row-text" data-i18n="permRow1">To bring the beer's story to life, we ask for camera access</p>
-          </div>
-          <div class="perm-row">
+          </li>
+          <li class="perm-row">
             <span class="perm-row-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11z"/>
@@ -1188,8 +1200,8 @@
               </svg>
             </span>
             <p class="perm-row-text" data-i18n="permRow2">For you to later leave a trace on the shared map, we also ask for your <em>approximate</em> location</p>
-          </div>
-          <div class="perm-row">
+          </li>
+          <li class="perm-row">
             <span class="perm-row-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 12a8 8 0 1 1 2.3 5.6"/>
@@ -1197,8 +1209,8 @@
               </svg>
             </span>
             <p class="perm-row-text" data-i18n="permRow3">If you prefer not to allow camera access, you can still continue through a 360° version of the experience</p>
-          </div>
-        </div>
+          </li>
+        </ul>
         <div class="perm-spacer"></div>
         <div class="perm-actions">
           <button class="perm-btn perm-btn--ghost" id="perm-deny" data-i18n="permDeny">360° version</button>
@@ -1275,7 +1287,7 @@
       <button class="map-back" id="map-back" aria-label="Restart">↺</button>
 
       <!-- Flavour strip is built dynamically by renderFlavourStrip() -->
-      <div class="flavor-strip" id="flavor-strip"></div>
+      <ul class="flavor-strip" id="flavor-strip"></ul>
 
       <div class="map-wrap" id="map-wrap">
         <div class="map-stage" id="map-stage">
@@ -1325,7 +1337,7 @@
       <div class="community-card" id="ux-card"></div>
     </div>
 
-    <div class="toast" id="toast" data-i18n="toast">Your trace is on the map ✦</div>
+    <div class="toast" id="toast" role="status" aria-live="polite" data-i18n="toast">Your trace is on the map ✦</div>
     <button class="restart-btn" id="restart-btn" title="Restart">↺</button>
 
     <script>
@@ -2288,7 +2300,9 @@
             renderMap();
           });
 
-          strip.appendChild(chip);
+          const li = document.createElement('li');
+          li.appendChild(chip);
+          strip.appendChild(li);
         });
       }
 
