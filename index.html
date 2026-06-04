@@ -709,6 +709,7 @@
       }
       .trace-pin:active { transform: scale(0.9); }
       .trace-pin.is-mine { box-shadow: 0 0 0 2px var(--magenta), 0 4px 10px rgba(0,0,0,0.3); }
+      .trace-pin.is-example { box-shadow: 0 0 0 2px var(--magenta), 0 0 0 7px rgba(217,45,84,0.22), 0 4px 12px rgba(0,0,0,0.3); }
       .trace-pin.locked {
         background: rgba(255,255,255,0.45);
         opacity: 0.55;
@@ -790,7 +791,7 @@
         z-index: 5;
         background: var(--orange);
         border-radius: 26px 26px 0 0;
-        padding: 2rem 1.4rem calc(env(safe-area-inset-bottom, 0px) + 1.2rem);
+        padding: 2.6rem 1.4rem calc(env(safe-area-inset-bottom, 0px) + 3.4rem);
         text-align: center;
         color: #fff;
         box-shadow: 0 -10px 30px rgba(0,0,0,0.18);
@@ -2180,6 +2181,16 @@
       // "You are here" coordinates derived from geolocation OR profile country
       let myCoord = null;
 
+      // A demo trace shown pre-submit to illustrate what the user's own trace
+      // will look like. Never saved — rendered fresh on each map render and
+      // removed once the user leaves their real trace.
+      const EXAMPLE_TRACE = {
+        id: 'example', flavour: 'honey', example: true,
+        quote: 'Shared a cold one in the valley with new friends — unforgettable.',
+        who: 'SARA, THE NETHERLANDS',
+        x: 50, y: 40,
+      };
+
       function renderMap() {
         tracesLayer.innerHTML = '';
         renderFlavourStrip();
@@ -2247,8 +2258,32 @@
           stage.appendChild(here);
         }
 
+        // Pre-submit, show ONE highlighted example trace so the user can see
+        // what their own trace will look like once they leave it.
+        let examplePinEl = null;
+        if (!hasSubmittedActive) {
+          const exBase = myCoord || COUNTRY_COORDS['ES'] || { x: 49, y: 40 };
+          EXAMPLE_TRACE.x = Math.min(96, exBase.x + 4);
+          EXAMPLE_TRACE.y = Math.max(8, exBase.y - 5);
+          const ex = document.createElement('button');
+          ex.className = 'trace-pin is-mine is-example';
+          ex.innerHTML = flavourIconHTML(EXAMPLE_TRACE.flavour);
+          ex.style.left = EXAMPLE_TRACE.x + '%';
+          ex.style.top  = EXAMPLE_TRACE.y + '%';
+          ex.dataset.id = 'example';
+          ex.setAttribute('aria-label', 'Example trace');
+          ex.addEventListener('click', (e) => { e.stopPropagation(); openBubble(EXAMPLE_TRACE, ex); });
+          tracesLayer.appendChild(ex);
+          examplePinEl = ex;
+        }
+
         // Auto-scroll the wrap so the user's location is centred horizontally
         centerOnUser();
+
+        // Auto-open the example bubble once the scroll position has settled.
+        if (examplePinEl) {
+          requestAnimationFrame(() => requestAnimationFrame(() => openBubble(EXAMPLE_TRACE, examplePinEl)));
+        }
       }
 
       /* ----------------------------------------------------------
