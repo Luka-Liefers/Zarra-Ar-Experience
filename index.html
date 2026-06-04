@@ -1110,6 +1110,13 @@
       body[data-submitted="1"] .join-block { display: block; }
       body[data-submitted="1"] .trace-title,
       body[data-submitted="1"] .trace-input-row { display: none; }
+      /* Post-submit "join the community" card sits lower than the input state:
+         the big bottom padding was only needed to lift the input clear of the
+         restart button, so drop it here (the centred Join button stays clear of
+         the bottom-left restart button and the safe-area inset). */
+      body[data-submitted="1"] .trace-panel {
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.3rem);
+      }
     </style>
   </head>
 
