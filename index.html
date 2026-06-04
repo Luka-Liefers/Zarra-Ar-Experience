@@ -1508,6 +1508,7 @@
           mScanNewTitle:   'SCAN A NEW BEER',
           mScanNewBody:    'To unlock new flavoured traces',
           mScanAnother:    'Scan another!',
+          mDismiss:        'Maybe later',
           mOkay:           'Got it',
         },
         es: {
@@ -1543,6 +1544,7 @@
           mScanNewTitle:   'ESCANEA UNA NUEVA CERVEZA',
           mScanNewBody:    'Para desbloquear nuevas huellas de sabor',
           mScanAnother:    '¡Escanea otra!',
+          mDismiss:        'Quizás más tarde',
           mOkay:           'Entendido',
         },
       };
@@ -2224,6 +2226,7 @@
                   body:  I18N[lang].mScanNewBody,
                   primary: I18N[lang].mScanAnother,
                   onPrimary: backToAR,
+                  secondary: I18N[lang].mDismiss,
                 });
               }
               return;
@@ -2291,6 +2294,7 @@
                 body:  I18N[lang].mScanNewBody,
                 primary: I18N[lang].mScanAnother,
                 onPrimary: backToAR,
+                secondary: I18N[lang].mDismiss,
               });
               return;
             }
