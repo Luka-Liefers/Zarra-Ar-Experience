@@ -1411,17 +1411,17 @@
          ----------------------------------------------------------
          activeFlavour          → flavour of the most recently scanned beer
          unlockedFlavours       → Set of flavours fully unlocked (scanned + trace submitted)
-         submittedTraces        → { honey: true, cherry: false, ... }
+         submittedTraces        → { honey: true, sourcherry: false, ... }
          hasProfile             → first run vs. subsequent scans
          ============================================================ */
       const FLAVOURS = {
         honey:  { id: 'honey',  icon: './assets/honey.svg',          label: 'HONEY'  },
         orange: { id: 'orange', icon: './assets/orange.svg',         label: 'ORANGE' },
-        cherry: { id: 'cherry', icon: './assets/sour%20cherry.svg',  label: 'SOUR CHERRY' },
-        lemon:  { id: 'lemon',  icon: './assets/sweet%20cherry.svg', label: 'SWEET CHERRY' },
+        sourcherry:  { id: 'sourcherry',  icon: './assets/sour%20cherry.svg',  label: 'SOUR CHERRY' },
+        sweetcherry: { id: 'sweetcherry', icon: './assets/sweet%20cherry.svg', label: 'SWEET CHERRY' },
         fig:    { id: 'fig',    icon: './assets/fig.svg',            label: 'FIG' },
       };
-      const FLAVOUR_ORDER = ['honey', 'orange', 'cherry', 'lemon', 'fig'];
+      const FLAVOUR_ORDER = ['honey', 'orange', 'sourcherry', 'sweetcherry', 'fig'];
       // Returns an <img> HTML string for a flavour's icon (falls back to bee).
       function flavourIconHTML(fid) {
         const f = FLAVOURS[fid];
@@ -2112,28 +2112,39 @@
           who: 'PIERRE, FRANCE',   cc: 'FR', jx:-1.8, jy: 0.7 },
         { id: 'h5', flavour:'honey', quote: 'Honey beer at sunset — nothing else needed.',
           who: 'LUCAS, ARGENTINA', cc: 'AR', jx: 1.2, jy:-0.8 },
-        // CHERRY traces
-        { id: 'c1', flavour:'cherry', quote: 'Bright like the cherries on my walk to school.',
-          who: 'GIULIA, ITALY',    cc: 'IT', jx: 1.8, jy: 0.8 },
-        { id: 'c2', flavour:'cherry', quote: 'Tart, fresh, and unexpected — love it.',
-          who: 'AKIRA, JAPAN',     cc: 'JP', jx:-1.5, jy: 0.5 },
-        { id: 'c3', flavour:'cherry', quote: 'My summer go-to from now on.',
-          who: 'SOFIA, MEXICO',    cc: 'MX', jx: 1.0, jy: 1.0 },
-        { id: 'c4', flavour:'cherry', quote: 'Shared one with my sister at the lake.',
-          who: 'LIAM, IRELAND',    cc: 'IE', jx: 0.6, jy: 0.9 },
-        { id: 'c5', flavour:'cherry', quote: 'Reminds me of the orchard near my grandparents.',
-          who: 'HANS, GERMANY',    cc: 'DE', jx:-2.2, jy:-0.6 },
-        // LEMON traces
-        { id: 'l1', flavour:'lemon', quote: 'Sharp and clean — like the Mediterranean.',
-          who: 'CARLOS, SPAIN',    cc: 'ES', jx: 1.6, jy:-1.4 },
-        { id: 'l2', flavour:'lemon', quote: 'Best beer after a long sail.',
-          who: 'BEATRIZ, BRAZIL',  cc: 'BR', jx:-1.2, jy: 1.5 },
-        { id: 'l3', flavour:'lemon', quote: 'A taste of the coast in every sip.',
+        // SOUR CHERRY traces  (flavour id 'sourcherry') — new
+        { id: 'sc1', flavour:'sourcherry', quote: 'Sharp and sour — it wakes up the whole evening.',
           who: 'OLIVIA, UK',       cc: 'GB', jx: 0.9, jy: 1.4 },
-        { id: 'l4', flavour:'lemon', quote: 'Bright. Cold. Honest.',
+        { id: 'sc2', flavour:'sourcherry', quote: 'Puckers like the wild cherries we picked as kids.',
+          who: 'HANS, GERMANY',    cc: 'DE', jx:-2.2, jy:-0.6 },
+        { id: 'sc3', flavour:'sourcherry', quote: 'Tart enough to make me smile after a long day.',
+          who: 'SOFIA, MEXICO',    cc: 'MX', jx: 1.0, jy: 1.0 },
+        { id: 'sc4', flavour:'sourcherry', quote: 'Sour, bold, and completely unforgettable.',
           who: 'NOAH, USA',        cc: 'US', jx: 3.5, jy:-2.5 },
-        { id: 'l5', flavour:'lemon', quote: 'Drank one watching the surf at dawn.',
+        { id: 'sc5', flavour:'sourcherry', quote: 'Like biting a cherry straight off the tree.',
           who: 'CHLOE, AUSTRALIA', cc: 'AU', jx: 1.2, jy:-1.8 },
+        // SWEET CHERRY traces  (flavour id 'sweetcherry') — moved from old cherry
+        { id: 'sw1', flavour:'sweetcherry', quote: 'Bright like the cherries on my walk to school.',
+          who: 'GIULIA, ITALY',    cc: 'IT', jx: 1.8, jy: 0.8 },
+        { id: 'sw2', flavour:'sweetcherry', quote: 'Tart, fresh, and unexpected — love it.',
+          who: 'AKIRA, JAPAN',     cc: 'JP', jx:-1.5, jy: 0.5 },
+        { id: 'sw3', flavour:'sweetcherry', quote: 'My summer go-to from now on.',
+          who: 'SOFIA, MEXICO',    cc: 'MX', jx: 1.0, jy: 1.0 },
+        { id: 'sw4', flavour:'sweetcherry', quote: 'Shared one with my sister at the lake.',
+          who: 'LIAM, IRELAND',    cc: 'IE', jx: 0.6, jy: 0.9 },
+        { id: 'sw5', flavour:'sweetcherry', quote: 'Reminds me of the orchard near my grandparents.',
+          who: 'HANS, GERMANY',    cc: 'DE', jx:-2.2, jy:-0.6 },
+        // FIG traces — new
+        { id: 'fg1', flavour:'fig', quote: 'Sweet figs and warm evenings — pure nostalgia.',
+          who: 'MARIA, SPAIN',     cc: 'ES', jx:-1.4, jy: 0.6 },
+        { id: 'fg2', flavour:'fig', quote: "Tastes like the fig tree in my grandfather's garden.",
+          who: 'JOÃO, PORTUGAL',   cc: 'PT', jx: 0.4, jy:-1.2 },
+        { id: 'fg3', flavour:'fig', quote: 'Rich, mellow, and a little luxurious.',
+          who: 'PIERRE, FRANCE',   cc: 'FR', jx:-1.8, jy: 0.7 },
+        { id: 'fg4', flavour:'fig', quote: 'Reminds me of late-summer harvests back home.',
+          who: 'BEATRIZ, BRAZIL',  cc: 'BR', jx:-1.2, jy: 1.5 },
+        { id: 'fg5', flavour:'fig', quote: 'Honeyed figs in a glass — what a treat.',
+          who: 'AKIRA, JAPAN',     cc: 'JP', jx:-1.5, jy: 0.5 },
       ];
       const SEED_TRACES = _SEEDS.map((s) => {
         const c = COUNTRY_COORDS[s.cc] || { x: 50, y: 50 };
@@ -2176,42 +2187,30 @@
         const all = getTraces();
         const hasSubmittedActive = activeFlavour && !!submittedTraces[activeFlavour];
 
-        // PRE-SUBMIT  →  NO traces shown. The user must leave their own
-        //               trace before they can discover others.
-        // POST-SUBMIT →  all traces for flavours in unlockedFlavours,
-        //               filtered by activeFilter.
-        let visibleSet;
-        if (!hasSubmittedActive) {
-          visibleSet = new Set();
-        } else {
-          const filter = activeFilter || activeFlavour;
-          visibleSet = new Set(
-            all.filter((t) => t.flavour === filter && unlockedFlavours.has(t.flavour))
-               .map((t) => t.id)
-          );
-        }
-
-        const drawList = hasSubmittedActive
-          ? all.filter((t) => visibleSet.has(t.id) || (t.mine && t.flavour === (activeFilter || activeFlavour)))
-          : [];
-
-        drawList.forEach((t) => {
+        // Every trace is ALWAYS drawn so the user can see the wider community
+        // they could unlock. A pin is "readable" (full colour, opens its quote)
+        // only if its flavour is unlocked — in this prototype that's honey,
+        // after the user leaves their own trace. All other-flavour traces, and
+        // every trace before the user submits, are drawn greyed-out + locked:
+        // visible as teasers, but not clickable to read.
+        all.forEach((t) => {
+          const readable = unlockedFlavours.has(t.flavour) || t.mine;
+          const locked = !readable;
           const pin = document.createElement('button');
-          const isVisible = visibleSet.has(t.id) || (t.mine && hasSubmittedActive);
-          const locked = !isVisible;
           pin.className = 'trace-pin' + (t.mine ? ' is-mine' : '') + (locked ? ' locked' : '');
           pin.innerHTML = flavourIconHTML(t.flavour);
           pin.style.left = t.x + '%';
           pin.style.top  = t.y + '%';
           pin.dataset.locked = locked ? '1' : '0';
           pin.dataset.id = t.id || '';
-          pin.setAttribute('aria-label', 'Trace from ' + t.who);
+          // Don't expose a locked trace's author/quote to assistive tech.
+          pin.setAttribute('aria-label', locked ? 'Locked trace — not yet unlocked' : ('Trace from ' + t.who));
           pin.addEventListener('click', (e) => {
             e.stopPropagation();
             if (locked) {
               haptic([20]);
-              // Pre-submit: any locked pin tap → "NOT SO FAST…"
-              // Post-submit: locked pin means a different flavour → "SCAN A NEW BEER"
+              // Before the user leaves their own trace → nudge them to do so.
+              // After → a locked pin is simply a flavour they haven't scanned.
               if (!hasSubmittedActive) {
                 showModal({
                   icon: '<img src="./assets/bee.svg" alt="" draggable="false">',
